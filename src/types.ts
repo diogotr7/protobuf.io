@@ -22,34 +22,40 @@ export type Fixed64 = {
   int64Representation: PbLong;
 };
 
-export type Message = Map<number, Field>;
+export type Message = {
+  fields: Map<number, SizedField>;
+  headerSize: number;
+  dataSize: number;
+};
+
+export type SizedField = Field & { tagBytes: number; dataBytes: number };
 
 export type Field =
   | {
-      tag: "message";
+      type: "message";
       data: Message;
     }
   | {
-      tag: "repeatedField";
+      type: "repeatedField";
       data: Field[];
     }
   | {
-      tag: "varint";
+      type: "varint";
       data: VarInt;
     }
   | {
-      tag: "string";
+      type: "string";
       data: string;
     }
   | {
-      tag: "bytes";
+      type: "bytes";
       data: Uint8Array;
     }
   | {
-      tag: "fixed64";
+      type: "fixed64";
       data: Fixed64;
     }
   | {
-      tag: "fixed32";
+      type: "fixed32";
       data: Fixed32;
     };

@@ -1,14 +1,15 @@
-import { BinaryReader, WireType } from "@protobuf-ts/runtime";
-import { Field, Message } from "./types";
+import { assert, BinaryReader, WireType } from "@protobuf-ts/runtime";
+import { Field, Message, SizedField } from "./types";
 
 export function decodeBytes(bytes: Uint8Array): Message {
-  if (!bytes || bytes.length === 0) return new Map();
+  if (!bytes || bytes.length === 0)
+    return { headerSize: 0, dataSize: 0, fields: new Map() };
 
-  return decodeProtobuf(new BinaryReader(bytes));
+  return readMessage(new BinaryReader(bytes), 0);
 }
 
-export function decodeProtobuf(reader: BinaryReader): Message {
-  const fields: Map<number, Field> = new Map();
+export function readMessage(reader: BinaryReader, headerSize: number): Message {
+  const fields: Map<number, SizedField> = new Map();
 
   while (reader.pos < reader.len) {
     const [fieldNumber, field] = readField(reader);
@@ -20,24 +21,37 @@ export function decodeProtobuf(reader: BinaryReader): Message {
     //if we already have a field with this number. It's a repeated field.
     //Check if we already have a repeated field, if not, create one.
     const existingField = fields.get(fieldNumber)!;
-    if (existingField.tag === "repeatedField") {
+    if (existingField.type === "repeatedField") {
       //TODO: check mismatched types?
       existingField.data.push(field);
     } else {
       //TODO: verify that the existing field is of the same type as the new field?
       fields.set(fieldNumber, {
-        tag: "repeatedField",
+        type: "repeatedField",
         data: [existingField, field],
+        dataBytes: existingField.dataBytes + field.dataBytes,
+        tagBytes: existingField.tagBytes + field.tagBytes,
       });
     }
   }
 
-  return fields;
+  assert(reader.pos === reader.len, "Did not read all bytes in message.");
+
+  console.debug("Read message with fields", fields, reader.pos, reader.len);
+  return {
+    headerSize,
+    dataSize: reader.len,
+    fields,
+  };
 }
 
-function readField(reader: BinaryReader): [number, Field] {
+function readField(reader: BinaryReader): [number, SizedField] {
+  const tagBefore = reader.pos;
   const [fieldNumber, wireType] = reader.tag();
-  console.debug("field", fieldNumber, "wire type", WireType[wireType]);
+  let tagBytes = reader.pos - tagBefore;
+  const dataBefore = reader.pos;
+
+  let field: Field;
   switch (wireType) {
     case WireType.Varint: {
       const before = reader.pos;
@@ -55,21 +69,19 @@ function readField(reader: BinaryReader): [number, Field] {
       reader.pos = before;
       const booleanRepresentation = reader.bool();
 
-      return [
-        fieldNumber,
-        {
-          data: {
-            int32Representation,
-            uint32Representation,
-            sint32Representation,
-            int64Representation,
-            uint64Representation,
-            sint64Representation,
-            booleanRepresentation,
-          },
-          tag: "varint",
+      field = {
+        data: {
+          int32Representation,
+          uint32Representation,
+          sint32Representation,
+          int64Representation,
+          uint64Representation,
+          sint64Representation,
+          booleanRepresentation,
         },
-      ];
+        type: "varint",
+      };
+      break;
     }
     case WireType.Bit32: {
       const before = reader.pos;
@@ -77,16 +89,14 @@ function readField(reader: BinaryReader): [number, Field] {
       reader.pos = before;
       const int32Representation = reader.int32();
 
-      return [
-        fieldNumber,
-        {
-          tag: "fixed32",
-          data: {
-            int32Representation,
-            uint32Representation,
-          },
+      field = {
+        type: "fixed32",
+        data: {
+          int32Representation,
+          uint32Representation,
         },
-      ];
+      };
+      break;
     }
     case WireType.Bit64: {
       const before = reader.pos;
@@ -94,25 +104,33 @@ function readField(reader: BinaryReader): [number, Field] {
       reader.pos = before;
       const int64Representation = reader.sfixed64();
 
-      return [
-        fieldNumber,
-        {
-          tag: "fixed64",
-          data: {
-            int64Representation,
-            uint64Representation,
-          },
+      field = {
+        type: "fixed64",
+        data: {
+          int64Representation,
+          uint64Representation,
         },
-      ];
+      };
+      break;
     }
     case WireType.LengthDelimited: {
-      return readLengthDelimited(fieldNumber, reader.bytes());
+      //   const before = reader.pos;
+      //   const bytes = reader.bytes();
+
+      //   //calculate the size of the legth delimited varint header + data.
+      //   const lengthDelimitedSize = reader.pos - before;
+      //   const lengthDelimitedVarintSize = lengthDelimitedSize - bytes.length;
+      //   tagBytes += lengthDelimitedVarintSize;
+      //console.debug("Length delimited varint size", lengthDelimitedVarintSize);
+      field = readLengthDelimited(reader);
+      break;
     }
     case WireType.StartGroup: {
-      reader.skip(WireType.StartGroup);
-      console.debug("Skipping group.");
-      //hacky, skip the group and go next
-      return readField(reader);
+      //   reader.skip(WireType.StartGroup);
+      //   console.debug("Skipping group.");
+      //   //hacky, skip the group and go next
+      //   return readField(reader);
+      throw new Error("groups are not supported");
     }
     case WireType.EndGroup: {
       throw new Error("groups are not supported");
@@ -121,12 +139,19 @@ function readField(reader: BinaryReader): [number, Field] {
       throw new Error("unknown wire type " + WireType[wireType]);
     }
   }
+
+  const dataBytes = reader.pos - dataBefore;
+  return [
+    fieldNumber,
+    {
+      ...field,
+      tagBytes,
+      dataBytes,
+    },
+  ];
 }
 
-function readLengthDelimited(
-  fieldNumber: number,
-  bytes: Uint8Array
-): [number, Field] {
+function readLengthDelimited(reader: BinaryReader): Field {
   //possible data:
   // 1. submessage
   // 2. repeated field
@@ -134,11 +159,13 @@ function readLengthDelimited(
   // 4. bytes
 
   // We should try to parse this as the data types described above, in order. If all else fails, just assume bytes.
-  const reader = new BinaryReader(bytes);
+  const before = reader.pos;
+  const bytes = reader.bytes();
+  const header = reader.pos - before - bytes.length;
 
   //if try read tag works, we need to then figure out whether it's a submessage or a repeated field. It's safe to exhaust the buffer, we'll never read past where we should.
   try {
-    const data = decodeProtobuf(reader);
+    const data = readMessage(new BinaryReader(bytes), header);
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.
     // We try to handle deciding whether it's a submessage or a repeated field as best as we can.
@@ -146,24 +173,18 @@ function readLengthDelimited(
     // If there's multiple with the same field number, it has to be a repeated field.
     // If there's multiple with different field numbers, it's a submessage.
 
-    const asArray = Array.from(data.entries());
+    const asArray = Array.from(data.fields.entries());
     if (asArray.length > 1 && asArray.every((f) => f[0] === asArray[0][0])) {
-      return [
-        fieldNumber,
-        {
-          tag: "repeatedField",
-          data: Array.from(data.values()),
-        },
-      ];
+      return {
+        type: "repeatedField",
+        data: Array.from(data.fields.values()),
+      };
     }
 
-    return [
-      fieldNumber,
-      {
-        data: data,
-        tag: "message",
-      },
-    ];
+    return {
+      data: data,
+      type: "message",
+    };
   } catch (e) {
     console.debug(
       "Failed parsing message from length delimited field. This is probably not an error. Falling back to string or bytes.",
@@ -177,23 +198,17 @@ function readLengthDelimited(
   //if try read tag fails, we need to try to parse it as a string.
   const possibleString = tryReadString(bytes);
   if (possibleString) {
-    return [
-      fieldNumber,
-      {
-        data: possibleString,
-        tag: "string",
-      },
-    ];
+    return {
+      data: possibleString,
+      type: "string",
+    };
   }
 
   //if that fails, just assume it's bytes.
-  return [
-    fieldNumber,
-    {
-      data: bytes,
-      tag: "bytes",
-    },
-  ];
+  return {
+    data: bytes,
+    type: "bytes",
+  };
 }
 
 function tryReadString(bytes: Uint8Array): string | null {

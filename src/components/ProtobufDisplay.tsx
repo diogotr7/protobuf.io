@@ -11,6 +11,7 @@ import {
   Text,
   useToast,
   Box,
+  HStack,
 } from "@chakra-ui/react";
 import { MessageDisplay } from "./MessageDisplay";
 import { bytesToHexDisplay } from "../utils/conversions";
@@ -85,39 +86,40 @@ export function ProtobufDisplay() {
               </Text>
             </Card>
           </Box>
-
-          <ButtonGroup
-            size="md"
-            isAttached
-            variant="outline"
-            justifyContent="center"
-          >
-            <Button
-              onClick={handleCopyb64}
-              isDisabled={buffer.byteLength === 0}
-            >
-              Copy as Base64
-            </Button>
-            <Button
-              onClick={handleCopyHex}
-              isDisabled={buffer.byteLength === 0}
-            >
-              Copy as Hex
-            </Button>
-            <Button onClick={handlePasteb64}>Paste Base64</Button>
-            <Button onClick={handlePasteHex}>Paste Hex</Button>
-            <Button onClick={handleUploadFile}>Upload File</Button>
-            <Button onClick={handleDownloadFile}>Download File</Button>
-            <Button onClick={handleShare} isDisabled={buffer.byteLength === 0}>
-              Copy Link
-            </Button>
-            <Button
-              onClick={() => setBuffer(new Uint8Array(0))}
-              isDisabled={buffer.byteLength === 0}
-            >
-              Clear
-            </Button>
-          </ButtonGroup>
+          <HStack justify="center" justifyContent="space-between">
+            <ButtonGroup size="sm" variant="outline" justifyContent="center">
+              <Button
+                onClick={handleCopyb64}
+                isDisabled={buffer.byteLength === 0}
+              >
+                Copy as Base64
+              </Button>
+              <Button
+                onClick={handleCopyHex}
+                isDisabled={buffer.byteLength === 0}
+              >
+                Copy as Hex
+              </Button>
+              <Button onClick={handlePasteb64}>Paste Base64</Button>
+              <Button onClick={handlePasteHex}>Paste Hex</Button>
+            </ButtonGroup>
+            <ButtonGroup size="sm" variant="outline" justifyContent="center">
+              <Button onClick={handleUploadFile}>Upload File</Button>
+              <Button onClick={handleDownloadFile}>Download File</Button>
+              <Button
+                onClick={handleShare}
+                isDisabled={buffer.byteLength === 0}
+              >
+                Copy Link
+              </Button>
+              <Button
+                onClick={() => setBuffer(new Uint8Array(0))}
+                isDisabled={buffer.byteLength === 0}
+              >
+                Clear
+              </Button>
+            </ButtonGroup>
+          </HStack>
         </Flex>
       </Card>
 

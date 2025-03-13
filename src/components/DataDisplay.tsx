@@ -6,13 +6,13 @@ import { RepeatedFieldDisplay } from "./RepeatedFieldDisplay";
 import { VarIntDisplay } from "./VarIntDisplay";
 
 export function DataDisplay({
-  field: { tag, data },
+  field: { type, data },
   depth,
 }: {
   field: Field;
   depth: number;
 }) {
-  switch (tag) {
+  switch (type) {
     case "bytes":
       return <BytesDisplay bytes={data} />;
     case "fixed32":
