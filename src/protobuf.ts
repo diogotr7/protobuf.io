@@ -1,4 +1,4 @@
-import { Reader, parse } from "protobufjs";
+import { Reader } from "protobufjs";
 import { Field, Message, SizedField, WireType } from "./types";
 
 export function decodeBytes(bytes: Uint8Array): Message {
@@ -224,8 +224,4 @@ function tryReadString(bytes: Uint8Array): string | null {
     );
     return null;
   }
-}
-
-export function parseProtoDefinition(definition: string): any {
-  return parse(definition);
 }
