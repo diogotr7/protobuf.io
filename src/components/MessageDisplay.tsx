@@ -10,16 +10,10 @@ import {
   Collapse,
 } from "@chakra-ui/react";
 import { useMemo } from "react";
-import { DataDisplay } from "./DataDisplay";
 import { Message } from "../types";
+import { FieldDisplay } from "./FieldDisplay";
 
-export function MessageDisplay({
-  message,
-  depth,
-}: {
-  message: Message;
-  depth: number;
-}) {
+export function MessageDisplay({ message }: { message: Message }) {
   const { isOpen, onToggle } = useDisclosure({
     defaultIsOpen: true,
   });
@@ -29,7 +23,7 @@ export function MessageDisplay({
   );
 
   return (
-    <Card ml={depth * 2} p={2} variant="outline">
+    <Card p={2} variant="outline">
       {/* margin 0 here and mt 2 in the Card to behave properly with collapse */}
       <Stack spacing={0}>
         <HStack>
@@ -45,16 +39,7 @@ export function MessageDisplay({
         </HStack>
         <Collapse in={isOpen} animateOpacity startingHeight={0.0001}>
           {asArray.map(([fieldNumber, field], idx) => (
-            <Card variant="outline" key={idx} p={4} mt={2}>
-              <HStack mb={2}>
-                <Badge colorScheme="purple">Field {fieldNumber}</Badge>
-                <Badge colorScheme="teal">Type: {field.type}</Badge>
-                <Spacer />
-                <Badge colorScheme="red">{field.tagBytes} tag</Badge>
-                <Badge colorScheme="red">{field.dataBytes} data</Badge>
-              </HStack>
-              <DataDisplay field={field} depth={depth + 1} />
-            </Card>
+            <FieldDisplay key={idx} field={[fieldNumber, field]} />
           ))}
         </Collapse>
       </Stack>

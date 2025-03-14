@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { decodeBytes } from "../protobuf";
 import {
   Flex,
@@ -6,13 +6,14 @@ import {
   Heading,
   Card,
   Button,
-  Stack,
   ButtonGroup,
   Text,
   useToast,
   Box,
-  HStack,
   Tooltip,
+  Wrap,
+  HStack,
+  Stack,
 } from "@chakra-ui/react";
 import { MessageDisplay } from "./MessageDisplay";
 import { bytesToHexDisplay } from "../utils/conversions";
@@ -59,6 +60,10 @@ export function ProtobufDisplay() {
 
   useLinkSharing(setBuffer);
 
+  const clear = useCallback(() => {
+    setBuffer(new Uint8Array(0));
+  }, [setBuffer]);
+
   const typeDefinition = useMemo(() => {
     try {
       return buffer.byteLength > 0 ? decodeBytes(buffer) : null;
@@ -90,7 +95,7 @@ export function ProtobufDisplay() {
               </Text>
             </Card>
           </Box>
-          <HStack justify="center" justifyContent="space-between">
+          <Wrap spacing={3} justify="space-evenly">
             <Card p={2} mb={2} variant="outline">
               <Flex direction="column" gap={0}>
                 <Tooltip
@@ -130,6 +135,7 @@ export function ProtobufDisplay() {
                 </HStack>
               </Flex>
             </Card>
+
             <Card p={2} mb={2} variant="outline">
               <Flex direction="column" gap={0}>
                 <Tooltip label={"Format: 8, 9, 16, 32"}>
@@ -146,6 +152,7 @@ export function ProtobufDisplay() {
                 </HStack>
               </Flex>
             </Card>
+
             <Card p={2} mb={2} variant="outline">
               <Flex direction="column" gap={0}>
                 <Tooltip label={"Download or upload a file"}>
@@ -163,20 +170,30 @@ export function ProtobufDisplay() {
               </Flex>
             </Card>
 
-            <ButtonGroup size="sm" variant="outline">
-              <Button onClick={handleShare}>Copy Link</Button>
-              <Button onClick={() => setBuffer(new Uint8Array(0))}>
-                Clear
-              </Button>
-            </ButtonGroup>
-          </HStack>
+            <Card p={2} mb={2} variant="outline">
+              <Flex direction="column" gap={0}>
+                <Tooltip label={"Copy a link with the buffer data included"}>
+                  <InfoIcon color="gray.500" />
+                </Tooltip>
+                <Text fontWeight="bold" mb={2} textAlign="center">
+                  Sharing
+                </Text>
+                <HStack justify="center">
+                  <ButtonGroup size="sm" variant="outline">
+                    <Button onClick={handleShare}>Copy Link</Button>
+                    <Button onClick={clear}>Clear</Button>
+                  </ButtonGroup>
+                </HStack>
+              </Flex>
+            </Card>
+          </Wrap>
         </Flex>
       </Card>
 
       {typeDefinition !== null ? (
-        <MessageDisplay message={typeDefinition} depth={0} />
+        <MessageDisplay message={typeDefinition} />
       ) : (
-        <Card mt={4} p={4} variant="outline">
+        <Card p={2} variant="outline">
           <Text mb={3}>
             No valid protobuf data detected. Try one of these examples:
           </Text>
