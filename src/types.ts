@@ -22,13 +22,17 @@ export type Fixed64 = {
   int64Representation: Long;
 };
 
-export type Message = {
-  fields: Map<number, SizedField>;
-  headerSize: number;
+export type Size = {
+  offset: number;
+  tagSize: number;
   dataSize: number;
 };
 
-export type SizedField = Field & { tagBytes: number; dataBytes: number };
+export type Message = {
+  fields: Map<number, SizedField>;
+} & Size;
+
+export type SizedField = Field & Size;
 
 export type Field =
   | {

@@ -29,9 +29,8 @@ export function MessageDisplay({ message }: { message: Message }) {
         <HStack>
           <Badge colorScheme="orange">Message</Badge>
           <Spacer />
-          {message.headerSize > 0 && (
-            <Badge colorScheme="red">{message.headerSize} tag</Badge>
-          )}
+          <Badge colorScheme="yellow">{message.offset} offset</Badge>
+          <Badge colorScheme="red">{message.tagSize} tag</Badge>
           <Badge colorScheme="red">{message.dataSize} data</Badge>
           <Button size="xs" onClick={onToggle}>
             {isOpen ? <ChevronDownIcon /> : <ChevronUpIcon />}

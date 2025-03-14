@@ -3,15 +3,20 @@ import { Field, Message, SizedField, WireType } from "./types";
 
 export function decodeBytes(bytes: Uint8Array): Message {
   if (!bytes || bytes.length === 0)
-    return { headerSize: 0, dataSize: 0, fields: new Map() };
+    return { offset: 0, tagSize: 0, dataSize: 0, fields: new Map() };
 
-  return readMessage(new Reader(bytes), 0);
+  return readMessage(new Reader(bytes), 0, bytes.length);
 }
 
-export function readMessage(reader: Reader, headerSize: number): Message {
+export function readMessage(
+  reader: Reader,
+  headerSize: number,
+  dataSize: number
+): Message {
   const fields: Map<number, SizedField> = new Map();
 
-  while (reader.pos < reader.len) {
+  const initialPos = reader.pos;
+  while (reader.pos < initialPos + dataSize) {
     const [fieldNumber, field] = readField(reader);
     if (!fields.has(fieldNumber)) {
       fields.set(fieldNumber, field);
@@ -29,18 +34,17 @@ export function readMessage(reader: Reader, headerSize: number): Message {
       fields.set(fieldNumber, {
         type: "repeatedField",
         data: [existingField, field],
-        dataBytes: existingField.dataBytes + field.dataBytes,
-        tagBytes: existingField.tagBytes + field.tagBytes,
+        offset: existingField.offset,
+        dataSize: existingField.dataSize + field.dataSize,
+        tagSize: existingField.tagSize + field.tagSize,
       });
     }
   }
 
-  //assert(reader.pos === reader.len, "Did not read all bytes in message.");
-
-  console.debug("Read message with fields", fields, reader.pos, reader.len);
   return {
-    headerSize,
-    dataSize: reader.len,
+    offset: initialPos - headerSize,
+    tagSize: headerSize,
+    dataSize,
     fields,
   };
 }
@@ -131,7 +135,7 @@ function readField(reader: Reader): [number, SizedField] {
       throw new Error("groups are not supported");
     }
     default: {
-      throw new Error("unknown wire type " + WireType[wireType]);
+      throw new Error(`unknown wire type ${wireType} ${WireType[wireType]}`);
     }
   }
 
@@ -140,8 +144,9 @@ function readField(reader: Reader): [number, SizedField] {
     fieldNumber,
     {
       ...field,
-      tagBytes,
-      dataBytes,
+      offset: tagBefore,
+      tagSize: tagBytes,
+      dataSize: dataBytes,
     },
   ];
 }
@@ -155,12 +160,15 @@ function readLengthDelimited(reader: Reader): Field {
 
   // We should try to parse this as the data types described above, in order. If all else fails, just assume bytes.
   const before = reader.pos;
-  const bytes = reader.bytes();
-  const header = reader.pos - before - bytes.length;
+  //read how long the data is first.
+  const length = reader.uint32();
+  //then, we measure how long this varint header is
+  const varIntHeaderLength = reader.pos - before;
+  //we do not rewind here, if it *is* a submessage, it assumes we've already read the len varint.
 
   //if try read tag works, we need to then figure out whether it's a submessage or a repeated field. It's safe to exhaust the buffer, we'll never read past where we should.
   try {
-    const data = readMessage(new Reader(bytes), header);
+    const data = readMessage(reader, varIntHeaderLength, length);
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.
     // We try to handle deciding whether it's a submessage or a repeated field as best as we can.
@@ -181,6 +189,7 @@ function readLengthDelimited(reader: Reader): Field {
       type: "message",
     };
   } catch (e) {
+    reader.pos = before;
     console.debug(
       "Failed parsing message from length delimited field. This is probably not an error. Falling back to string or bytes.",
       e
@@ -189,6 +198,9 @@ function readLengthDelimited(reader: Reader): Field {
   }
 
   console.debug("Trying to parse as string or bytes.");
+
+  //the other two parsers don't really care about a Reader, so we can just pass the bytes.
+  const bytes = reader.bytes();
 
   //if try read tag fails, we need to try to parse it as a string.
   const possibleString = tryReadString(bytes);

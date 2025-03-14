@@ -10,7 +10,7 @@ export function BytesDisplay({ bytes }: { bytes: Uint8Array }) {
   return (
     <Stack>
       <HStack>
-        <Badge colorScheme="yellow">Length: {bytes.length}</Badge>
+        <Badge colorScheme="red">Length: {bytes.length}</Badge>
       </HStack>
       <Code p={2} borderRadius="md">
         {toHex(bytes)}

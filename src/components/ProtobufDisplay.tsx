@@ -66,16 +66,6 @@ export function ProtobufDisplay() {
 
       <Card p={4} mb={6} variant="outline">
         <Flex direction="column" gap={4}>
-          <Box>
-            <Text fontWeight="bold" mb={2}>
-              Current Buffer ({buffer.byteLength} bytes):
-            </Text>
-            <Card variant="outline" p={3}>
-              <Text fontFamily="mono" fontSize="sm" noOfLines={2}>
-                {bufferDisplay || "(empty)"}
-              </Text>
-            </Card>
-          </Box>
           <Wrap spacing={3} justify="space-evenly">
             <Card p={2} mb={2} variant="outline">
               <Flex direction="column" gap={0}>
@@ -168,6 +158,16 @@ export function ProtobufDisplay() {
               </Flex>
             </Card>
           </Wrap>
+          <Box>
+            <Text fontWeight="bold" mb={2}>
+              Current Buffer ({buffer.byteLength} bytes):
+            </Text>
+            <Card variant="outline" p={3}>
+              <Text fontFamily="mono" fontSize="sm" noOfLines={2}>
+                {bufferDisplay || "(empty)"}
+              </Text>
+            </Card>
+          </Box>
         </Flex>
       </Card>
 
