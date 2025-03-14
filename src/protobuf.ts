@@ -151,6 +151,13 @@ function readField(reader: Reader): [number, SizedRawField] {
   ];
 }
 
+//TODO: make this return a SizedRawField.
+// I think we have enough information:
+//  the offset is trivial.
+//  tag size is just the byte length of the varint
+//  data size is the value of the varint
+
+//If the data of the field is a submessage, it will deal with its size itself?
 function readLengthDelimited(reader: Reader): RawField {
   //possible data:
   // 1. submessage
@@ -168,6 +175,11 @@ function readLengthDelimited(reader: Reader): RawField {
 
   //if try read tag works, we need to then figure out whether it's a submessage or a repeated field. It's safe to exhaust the buffer, we'll never read past where we should.
   try {
+    //TODO: need to deal with packed repeated fields here.
+    // as far as i understand, they're a length delimited field, that contains a single tag at the start,
+    //  then the actual data of the field repeated until we finish the payload (with no more tags).
+    // Checking for its existence without type information is a bit of a pain. Probably force read a tag,
+    //  then be more permissive reading following tags within that length delimited payload.
     const data = readMessage(reader, varIntHeaderLength, length);
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.
