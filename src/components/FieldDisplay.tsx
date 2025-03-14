@@ -1,8 +1,8 @@
 import { Card, HStack, Badge, Spacer } from "@chakra-ui/react";
-import { SizedField } from "../types";
+import { SizedRawField } from "../types";
 import { DataDisplay } from "./DataDisplay";
 
-export function FieldDisplay({ field }: { field: [number, SizedField] }) {
+export function FieldDisplay({ field }: { field: [number, SizedRawField] }) {
   return (
     <Card variant="outline" p={2} mt={2}>
       <HStack mb={2}>

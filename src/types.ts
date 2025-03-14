@@ -28,20 +28,20 @@ export type Size = {
   dataSize: number;
 };
 
-export type Message = {
-  fields: Map<number, SizedField>;
+export type RawMessage = {
+  fields: Map<number, SizedRawField>;
 } & Size;
 
-export type SizedField = Field & Size;
+export type SizedRawField = RawField & Size;
 
-export type Field =
+export type RawField =
   | {
       type: "message";
-      data: Message;
+      data: RawMessage;
     }
   | {
       type: "repeatedField";
-      data: Field[];
+      data: RawField[];
     }
   | {
       type: "varint";

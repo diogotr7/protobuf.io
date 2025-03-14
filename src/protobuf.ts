@@ -1,7 +1,7 @@
 import { Reader } from "protobufjs";
-import { Field, Message, SizedField, WireType } from "./types";
+import { RawField, RawMessage, SizedRawField, WireType } from "./types";
 
-export function decodeBytes(bytes: Uint8Array): Message {
+export function decodeBytes(bytes: Uint8Array): RawMessage {
   if (!bytes || bytes.length === 0)
     return { offset: 0, tagSize: 0, dataSize: 0, fields: new Map() };
 
@@ -12,8 +12,8 @@ export function readMessage(
   reader: Reader,
   headerSize: number,
   dataSize: number
-): Message {
-  const fields: Map<number, SizedField> = new Map();
+): RawMessage {
+  const fields: Map<number, SizedRawField> = new Map();
 
   const initialPos = reader.pos;
   while (reader.pos < initialPos + dataSize) {
@@ -49,7 +49,7 @@ export function readMessage(
   };
 }
 
-function readField(reader: Reader): [number, SizedField] {
+function readField(reader: Reader): [number, SizedRawField] {
   const tagBefore = reader.pos;
   //todo: should this be a uint64 instead?
   const tag = reader.uint32();
@@ -58,7 +58,7 @@ function readField(reader: Reader): [number, SizedField] {
   let tagBytes = reader.pos - tagBefore;
   const dataBefore = reader.pos;
 
-  let field: Field;
+  let field: RawField;
   switch (wireType) {
     case WireType.Varint: {
       const before = reader.pos;
@@ -151,7 +151,7 @@ function readField(reader: Reader): [number, SizedField] {
   ];
 }
 
-function readLengthDelimited(reader: Reader): Field {
+function readLengthDelimited(reader: Reader): RawField {
   //possible data:
   // 1. submessage
   // 2. repeated field

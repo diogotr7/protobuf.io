@@ -10,10 +10,10 @@ import {
   Collapse,
 } from "@chakra-ui/react";
 import { useMemo } from "react";
-import { Message } from "../types";
+import { RawMessage } from "../types";
 import { FieldDisplay } from "./FieldDisplay";
 
-export function MessageDisplay({ message }: { message: Message }) {
+export function MessageDisplay({ message }: { message: RawMessage }) {
   const { isOpen, onToggle } = useDisclosure({
     defaultIsOpen: true,
   });

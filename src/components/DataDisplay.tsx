@@ -1,11 +1,11 @@
 import { Text } from "@chakra-ui/react";
-import { Field } from "../types";
+import { RawField } from "../types";
 import { BytesDisplay } from "./BytesDisplay";
 import { MessageDisplay } from "./MessageDisplay";
 import { RepeatedFieldDisplay } from "./RepeatedFieldDisplay";
 import { VarIntDisplay } from "./VarIntDisplay";
 
-export function DataDisplay({ field: { type, data } }: { field: Field }) {
+export function DataDisplay({ field: { type, data } }: { field: RawField }) {
   switch (type) {
     case "bytes":
       return <BytesDisplay bytes={data} />;
