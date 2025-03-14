@@ -1,14 +1,14 @@
-import { assert, BinaryReader, WireType } from "@protobuf-ts/runtime";
-import { Field, Message, SizedField } from "./types";
+import { Reader, parse } from "protobufjs";
+import { Field, Message, SizedField, WireType } from "./types";
 
 export function decodeBytes(bytes: Uint8Array): Message {
   if (!bytes || bytes.length === 0)
     return { headerSize: 0, dataSize: 0, fields: new Map() };
 
-  return readMessage(new BinaryReader(bytes), 0);
+  return readMessage(new Reader(bytes), 0);
 }
 
-export function readMessage(reader: BinaryReader, headerSize: number): Message {
+export function readMessage(reader: Reader, headerSize: number): Message {
   const fields: Map<number, SizedField> = new Map();
 
   while (reader.pos < reader.len) {
@@ -35,7 +35,7 @@ export function readMessage(reader: BinaryReader, headerSize: number): Message {
     }
   }
 
-  assert(reader.pos === reader.len, "Did not read all bytes in message.");
+  //assert(reader.pos === reader.len, "Did not read all bytes in message.");
 
   console.debug("Read message with fields", fields, reader.pos, reader.len);
   return {
@@ -45,9 +45,12 @@ export function readMessage(reader: BinaryReader, headerSize: number): Message {
   };
 }
 
-function readField(reader: BinaryReader): [number, SizedField] {
+function readField(reader: Reader): [number, SizedField] {
   const tagBefore = reader.pos;
-  const [fieldNumber, wireType] = reader.tag();
+  //todo: should this be a uint64 instead?
+  const tag = reader.uint32();
+  const fieldNumber = tag >>> 3;
+  const wireType = tag & 7;
   let tagBytes = reader.pos - tagBefore;
   const dataBefore = reader.pos;
 
@@ -114,14 +117,6 @@ function readField(reader: BinaryReader): [number, SizedField] {
       break;
     }
     case WireType.LengthDelimited: {
-      //   const before = reader.pos;
-      //   const bytes = reader.bytes();
-
-      //   //calculate the size of the legth delimited varint header + data.
-      //   const lengthDelimitedSize = reader.pos - before;
-      //   const lengthDelimitedVarintSize = lengthDelimitedSize - bytes.length;
-      //   tagBytes += lengthDelimitedVarintSize;
-      //console.debug("Length delimited varint size", lengthDelimitedVarintSize);
       field = readLengthDelimited(reader);
       break;
     }
@@ -151,7 +146,7 @@ function readField(reader: BinaryReader): [number, SizedField] {
   ];
 }
 
-function readLengthDelimited(reader: BinaryReader): Field {
+function readLengthDelimited(reader: Reader): Field {
   //possible data:
   // 1. submessage
   // 2. repeated field
@@ -165,7 +160,7 @@ function readLengthDelimited(reader: BinaryReader): Field {
 
   //if try read tag works, we need to then figure out whether it's a submessage or a repeated field. It's safe to exhaust the buffer, we'll never read past where we should.
   try {
-    const data = readMessage(new BinaryReader(bytes), header);
+    const data = readMessage(new Reader(bytes), header);
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.
     // We try to handle deciding whether it's a submessage or a repeated field as best as we can.
@@ -229,4 +224,8 @@ function tryReadString(bytes: Uint8Array): string | null {
     );
     return null;
   }
+}
+
+export function parseProtoDefinition(definition: string): any {
+  return parse(definition);
 }
