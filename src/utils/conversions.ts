@@ -37,3 +37,17 @@ export function bytesToHexDisplay(bytes: Uint8Array): string {
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join(" ");
 }
+
+export function decimalBytesToArrayBuffer(decimalBytes: string): Uint8Array {
+  const decimalArray = decimalBytes.split(",").map((byte) => byte.trim());
+  const bytes = new Uint8Array(decimalArray.length);
+  for (let i = 0; i < decimalArray.length; i++) {
+    bytes[i] = parseInt(decimalArray[i], 10);
+  }
+  return bytes;
+}
+
+export function arrayBufferToDecimalBytes(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  return Array.from(bytes).join(", ");
+}

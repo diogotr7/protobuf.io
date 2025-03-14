@@ -4,6 +4,7 @@ import {
   arrayBufferToBase64,
   arrayBufferToHex,
   base64ToArrayBuffer,
+  decimalBytesToArrayBuffer,
   hexToArrayBuffer,
 } from "../utils/conversions";
 
@@ -159,6 +160,54 @@ export function useProtoActions() {
     }
   }, [buffer, toast]);
 
+  const handleCopyDecimal = useCallback(() => {
+    if (buffer.byteLength > 0) {
+      const decimalString = Array.from(buffer).join(", ");
+      navigator.clipboard.writeText(decimalString);
+      toast({
+        title: "Decimal data copied",
+        status: "success",
+        duration: 2000,
+      });
+    } else {
+      toast({
+        title: "Nothing to copy",
+        status: "info",
+        duration: 2000,
+      });
+    }
+  }, [buffer, toast]);
+
+  const handlePasteDecimal = useCallback(async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text.trim()) {
+        try {
+          const newBuffer = decimalBytesToArrayBuffer(text.trim());
+          setBuffer(newBuffer);
+          toast({
+            title: "Decimal data pasted",
+            status: "success",
+            duration: 2000,
+          });
+        } catch (e) {
+          toast({
+            title: "Invalid decimal data",
+            status: "error",
+            duration: 3000,
+          });
+        }
+      }
+    } catch (err) {
+      toast({
+        title: "Failed to read clipboard",
+        description: "Please check browser permissions",
+        status: "error",
+        duration: 3000,
+      });
+    }
+  }, [toast]);
+
   // Handler for share button
   const handleShare = useCallback(() => {
     if (buffer.byteLength > 0) {
@@ -187,6 +236,8 @@ export function useProtoActions() {
       handleCopyHex,
       handlePasteb64,
       handlePasteHex,
+      handleCopyDecimal,
+      handlePasteDecimal,
       handleUploadFile,
       handleDownloadFile,
       handleShare,
@@ -196,8 +247,10 @@ export function useProtoActions() {
       setBuffer,
       handleCopyb64,
       handleCopyHex,
+      handleCopyDecimal,
       handlePasteb64,
       handlePasteHex,
+      handlePasteDecimal,
       handleUploadFile,
       handleDownloadFile,
       handleShare,

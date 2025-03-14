@@ -12,11 +12,13 @@ import {
   useToast,
   Box,
   HStack,
+  Tooltip,
 } from "@chakra-ui/react";
 import { MessageDisplay } from "./MessageDisplay";
 import { bytesToHexDisplay } from "../utils/conversions";
 import { useProtoActions as useBufferManagement } from "../hooks/useProtoActions";
 import { useLinkSharing } from "../hooks/useLinkSharing";
+import { InfoIcon } from "@chakra-ui/icons";
 
 const examples = [
   new Uint8Array([
@@ -46,9 +48,11 @@ export function ProtobufDisplay() {
     setBuffer,
     handleCopyHex,
     handleCopyb64,
+    handleCopyDecimal,
     handlePasteHex,
     handleDownloadFile,
     handlePasteb64,
+    handlePasteDecimal,
     handleShare,
     handleUploadFile,
   } = useBufferManagement();
@@ -87,35 +91,81 @@ export function ProtobufDisplay() {
             </Card>
           </Box>
           <HStack justify="center" justifyContent="space-between">
-            <ButtonGroup size="sm" variant="outline" justifyContent="center">
-              <Button
-                onClick={handleCopyb64}
-                isDisabled={buffer.byteLength === 0}
-              >
-                Copy as Base64
-              </Button>
-              <Button
-                onClick={handleCopyHex}
-                isDisabled={buffer.byteLength === 0}
-              >
-                Copy as Hex
-              </Button>
-              <Button onClick={handlePasteb64}>Paste Base64</Button>
-              <Button onClick={handlePasteHex}>Paste Hex</Button>
-            </ButtonGroup>
-            <ButtonGroup size="sm" variant="outline" justifyContent="center">
-              <Button onClick={handleUploadFile}>Upload File</Button>
-              <Button onClick={handleDownloadFile}>Download File</Button>
-              <Button
-                onClick={handleShare}
-                isDisabled={buffer.byteLength === 0}
-              >
-                Copy Link
-              </Button>
-              <Button
-                onClick={() => setBuffer(new Uint8Array(0))}
-                isDisabled={buffer.byteLength === 0}
-              >
+            <Card p={2} mb={2} variant="outline">
+              <Flex direction="column" gap={0}>
+                <Tooltip
+                  label={
+                    "Format: CgxyCgifMBDhDxgyIBkKChIICAEQDxgeIAAKBFICCAAKBVoDCIwB"
+                  }
+                >
+                  <InfoIcon color="gray.500" />
+                </Tooltip>
+
+                <Text fontWeight="bold" mb={2} textAlign="center">
+                  Base64
+                </Text>
+
+                <HStack justify="center">
+                  <ButtonGroup size="sm" variant="outline">
+                    <Button onClick={handleCopyb64}>Copy</Button>
+                    <Button onClick={handlePasteb64}>Paste</Button>
+                  </ButtonGroup>
+                </HStack>
+              </Flex>
+            </Card>
+
+            <Card p={2} mb={2} variant="outline">
+              <Flex direction="column" gap={0}>
+                <Tooltip label={"Format: 00 A0 DE AD BE EF"}>
+                  <InfoIcon color="gray.500" />
+                </Tooltip>
+                <Text fontWeight="bold" mb={2} textAlign="center">
+                  Hex
+                </Text>
+                <HStack justify="center">
+                  <ButtonGroup size="sm" variant="outline">
+                    <Button onClick={handleCopyHex}>Copy</Button>
+                    <Button onClick={handlePasteHex}>Paste</Button>
+                  </ButtonGroup>
+                </HStack>
+              </Flex>
+            </Card>
+            <Card p={2} mb={2} variant="outline">
+              <Flex direction="column" gap={0}>
+                <Tooltip label={"Format: 8, 9, 16, 32"}>
+                  <InfoIcon color="gray.500" />
+                </Tooltip>
+                <Text fontWeight="bold" mb={2} textAlign="center">
+                  Decimal
+                </Text>
+                <HStack justify="center">
+                  <ButtonGroup size="sm" variant="outline">
+                    <Button onClick={handleCopyDecimal}>Copy</Button>
+                    <Button onClick={handlePasteDecimal}>Paste</Button>
+                  </ButtonGroup>
+                </HStack>
+              </Flex>
+            </Card>
+            <Card p={2} mb={2} variant="outline">
+              <Flex direction="column" gap={0}>
+                <Tooltip label={"Download or upload a file"}>
+                  <InfoIcon color="gray.500" />
+                </Tooltip>
+                <Text fontWeight="bold" mb={2} textAlign="center">
+                  File
+                </Text>
+                <HStack justify="center">
+                  <ButtonGroup size="sm" variant="outline">
+                    <Button onClick={handleDownloadFile}>Download</Button>
+                    <Button onClick={handleUploadFile}>Upload</Button>
+                  </ButtonGroup>
+                </HStack>
+              </Flex>
+            </Card>
+
+            <ButtonGroup size="sm" variant="outline">
+              <Button onClick={handleShare}>Copy Link</Button>
+              <Button onClick={() => setBuffer(new Uint8Array(0))}>
                 Clear
               </Button>
             </ButtonGroup>
