@@ -174,11 +174,7 @@ export function ProtobufDisplay() {
 
       {/* Add the HexView component here, between the buttons and the message display */}
       {buffer.byteLength > 0 && (
-        <HexView
-          buffer={buffer}
-          rootMessage={typeDefinition}
-          bytesPerRow={32}
-        />
+        <HexView buffer={buffer} rootMessage={typeDefinition} />
       )}
 
       {typeDefinition !== null ? (

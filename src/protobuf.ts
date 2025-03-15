@@ -1,7 +1,7 @@
 import { Reader } from "protobufjs";
 import { FieldWithNumber, SizedRawMessage } from "./types";
 import { WireType } from "./types/WireType";
-import { RawField, VarInt } from "./types/field";
+import { Fixed32, Fixed64, RawField, VarInt } from "./types/field";
 
 export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
   if (!bytes || bytes.length === 0)
@@ -9,7 +9,6 @@ export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
 
   const message = readMessage(new Reader(bytes), bytes.length);
   sanityCheckSizes(message);
-  console.log("Decoded message", JSON.stringify(message, null, 2));
   return message;
 }
 
@@ -29,26 +28,29 @@ export function readMessage(reader: Reader, dataSize: number): SizedRawMessage {
 }
 
 function readField(reader: Reader): FieldWithNumber {
-  const tagBefore = reader.pos;
+  const offset = reader.pos;
   //todo: should this be a uint64 instead?
   const tag = reader.uint32();
   const fieldNumber = tag >>> 3;
   const wireType = tag & 7;
-  let tagBytes = reader.pos - tagBefore;
+  let tagSize = reader.pos - offset;
   const dataBefore = reader.pos;
 
-  let field: RawField;
   switch (wireType) {
     case WireType.Varint: {
       const before = reader.pos;
-      const varInt: Partial<VarInt> = {};
+      const data: VarInt = {
+        int: "",
+        uint: "",
+        sint: "",
+      };
 
       try {
-        varInt.int = reader.int32().toString();
+        data.int = reader.int32().toString();
         reader.pos = before;
-        varInt.uint = reader.uint32().toString();
+        data.uint = reader.uint32().toString();
         reader.pos = before;
-        varInt.sint = reader.sint32().toString();
+        data.sint = reader.sint32().toString();
         reader.pos = before;
       } catch (e) {
         console.debug("Failed reading 32 bit varint, trying 64 bit varint", e);
@@ -56,47 +58,70 @@ function readField(reader: Reader): FieldWithNumber {
         reader.pos = before;
       }
 
-      varInt.int = reader.int64().toString();
+      data.int = reader.int64().toString();
       reader.pos = before;
-      varInt.uint = reader.uint64().toString();
+      data.uint = reader.uint64().toString();
       reader.pos = before;
-      varInt.sint = reader.sint64().toString();
+      data.sint = reader.sint64().toString();
 
-      field = {
-        data: varInt as VarInt,
-        type: "varint",
+      const dataSize = reader.pos - dataBefore;
+
+      return {
+        fieldNumber,
+        field: {
+          type: "varint",
+          data,
+          offset,
+          tagSize,
+          dataSize,
+        },
       };
-      break;
     }
     case WireType.Bit32: {
       const before = reader.pos;
-      const uint32Representation = reader.fixed32();
+      const data: Fixed32 = {
+        int32Representation: 0,
+        uint32Representation: 0,
+      };
+      data.uint32Representation = reader.fixed32();
       reader.pos = before;
-      const int32Representation = reader.int32();
+      data.int32Representation = reader.int32();
 
-      field = {
-        type: "fixed32",
-        data: {
-          int32Representation,
-          uint32Representation,
+      const dataSize = reader.pos - dataBefore;
+
+      return {
+        fieldNumber,
+        field: {
+          type: "fixed32",
+          offset,
+          tagSize,
+          dataSize,
+          data,
         },
       };
-      break;
     }
     case WireType.Bit64: {
       const before = reader.pos;
-      const uint64Representation = reader.fixed64().toString();
+      const data: Fixed64 = {
+        uint64Representation: "",
+        int64Representation: "",
+      };
+      data.uint64Representation = reader.fixed64().toString();
       reader.pos = before;
-      const int64Representation = reader.sfixed64().toString();
+      data.int64Representation = reader.sfixed64().toString();
 
-      field = {
-        type: "fixed64",
-        data: {
-          int64Representation,
-          uint64Representation,
+      const dataSize = reader.pos - dataBefore;
+
+      return {
+        fieldNumber,
+        field: {
+          type: "fixed64",
+          offset,
+          tagSize,
+          dataSize,
+          data,
         },
       };
-      break;
     }
     case WireType.LengthDelimited: {
       const [data, varIntHeaderLength] = readLengthDelimited(reader);
@@ -106,13 +131,13 @@ function readField(reader: Reader): FieldWithNumber {
         fieldNumber,
         field: {
           ...data,
-          offset: tagBefore,
-          tagSize: tagBytes + varIntHeaderLength,
+          offset,
+          //Adjusting sizes so the varintheader
+          // is included as part of the tag, not the data.
+          tagSize: tagSize + varIntHeaderLength,
           dataSize: dataBytes - varIntHeaderLength,
         },
       };
-
-      break;
     }
     case WireType.StartGroup: {
       //   reader.skip(WireType.StartGroup);
@@ -128,17 +153,6 @@ function readField(reader: Reader): FieldWithNumber {
       throw new Error(`unknown wire type ${wireType} ${WireType[wireType]}`);
     }
   }
-
-  const dataBytes = reader.pos - dataBefore;
-  return {
-    fieldNumber,
-    field: {
-      ...field,
-      offset: tagBefore,
-      tagSize: tagBytes,
-      dataSize: dataBytes,
-    },
-  };
 }
 
 //If the data of the field is a submessage, it will deal with its size itself?

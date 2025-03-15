@@ -7,6 +7,7 @@ import {
   Badge,
   Heading,
   Divider,
+  Stack,
 } from "@chakra-ui/react";
 import { SizedRawMessage } from "../types";
 import { useMemo } from "react";
@@ -29,7 +30,7 @@ interface HexViewProps {
 }
 
 // Get color for a specific byte type
-const getColorForByteType = (type: string, fieldType?: string): string => {
+function getColorForByteType(type: string, fieldType?: string): string {
   switch (type) {
     case "tag":
       return "yellow";
@@ -55,17 +56,16 @@ const getColorForByteType = (type: string, fieldType?: string): string => {
     default:
       return "gray.200";
   }
-};
+}
 
 // Process message recursively to get byte information
-const processMessage = (
+function processMessage(
   message: SizedRawMessage,
   byteInfoMap: Map<number, ByteInfo>,
   messageDepth: number = 0
-): void => {
+): void {
   //const messageStart = message.offset;
   //const messageEnd = messageStart + message.tagSize + message.dataSize;
-
   // Process each field in the message
   message.fields.forEach(({ field, fieldNumber }) => {
     const fieldStart = field.offset;
@@ -104,13 +104,14 @@ const processMessage = (
       processMessage(field.data, byteInfoMap, messageDepth + 1);
     }
   });
-};
+}
 
-export const HexView: React.FC<HexViewProps> = ({
+//TODO: make the rows dynamic based on the width of the hex view
+export function HexView({
   buffer,
   rootMessage,
   bytesPerRow = 32,
-}) => {
+}: HexViewProps) {
   // Process buffer and colorize based on the message structure
   const byteInfoArray = useMemo(() => {
     const byteInfoMap = new Map<number, ByteInfo>();
@@ -152,12 +153,10 @@ export const HexView: React.FC<HexViewProps> = ({
 
   return (
     <Card p={4} mb={6} variant="outline">
-      <VStack spacing={2} align="stretch">
-        <Heading size="sm" mb={2}>
-          Hex Byte Visualization
-        </Heading>
+      <VStack spacing={4} align="stretch">
+        <Heading size="sm">Hex Byte Visualization</Heading>
 
-        <Flex wrap="wrap" mb={2} gap={2}>
+        <Flex wrap="wrap" gap={2}>
           <Badge colorScheme="yellow">Tag</Badge>
           <Badge colorScheme="purple">VarInt</Badge>
           <Badge colorScheme="green">String</Badge>
@@ -169,40 +168,40 @@ export const HexView: React.FC<HexViewProps> = ({
           <Badge colorScheme="gray">Unknown</Badge>
         </Flex>
 
-        <Divider mb={2} />
+        <Divider />
 
-        {rows.map((row, rowIndex) => (
-          <Flex key={rowIndex} align="center" width="100%">
-            <Text fontFamily="mono" color="gray.500" w="60px" flexShrink={0}>
-              {(rowIndex * bytesPerRow).toString(16).padStart(4, "0")}:
-            </Text>
+        {/* Adjust spacing so that the actual byte rows line up close together */}
+        <Stack spacing={0}>
+          {rows.map((row, rowIndex) => (
+            <Flex key={rowIndex} align="center" width="100%">
+              <Text fontFamily="mono" color="gray.500" w="60px" flexShrink={0}>
+                {(rowIndex * bytesPerRow).toString(16).padStart(4, "0")}:
+              </Text>
 
-            <Flex wrap="wrap" flex="1" justifyContent="flex-start">
-              {row.map((byteInfo) => (
-                <Tooltip
-                  key={byteInfo.offset}
-                  label={`Offset: 0x${byteInfo.offset
-                    .toString(16)
-                    .padStart(2, "0")} - ${byteInfo.description}`}
-                  placement="top"
-                >
-                  <Badge
-                    colorScheme={byteInfo.color}
-                    borderRadius="sm"
-                    fontFamily="mono"
-                    fontSize="sm"
-                    m="1px"
-                    minW="24px"
-                    textAlign="center"
+              <Flex wrap="wrap" flex="1" justifyContent="flex-start">
+                {row.map((byteInfo) => (
+                  <Tooltip
+                    key={byteInfo.offset}
+                    label={`Offset: ${byteInfo.offset} | 0x${byteInfo.offset
+                      .toString(16)
+                      .padStart(2, "0")} - ${byteInfo.description}`}
+                    placement="top"
                   >
-                    {buffer[byteInfo.offset].toString(16).padStart(2, "0")}
-                  </Badge>
-                </Tooltip>
-              ))}
+                    <Badge
+                      colorScheme={byteInfo.color}
+                      fontFamily="mono"
+                      borderRadius={0}
+                      fontSize="lg"
+                    >
+                      {buffer[byteInfo.offset].toString(16).padStart(2, "0")}
+                    </Badge>
+                  </Tooltip>
+                ))}
+              </Flex>
             </Flex>
-          </Flex>
-        ))}
+          ))}
+        </Stack>
       </VStack>
     </Card>
   );
-};
+}

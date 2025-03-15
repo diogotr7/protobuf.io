@@ -744,7 +744,7 @@ const ex3: SizedRawMessage = {
 
 export const expected = [ex1, ex2, ex3];
 
-test("protobuf", (t) => {
+test("protobuf", (_) => {
   examples.forEach((example, i) => {
     const decoded = decodeBytes(example);
     expect(decoded).toEqual(expected[i]);
