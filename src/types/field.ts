@@ -1,16 +1,9 @@
-import { Long } from "protobufjs";
 import { SizedRawMessage } from ".";
 
 export type VarInt = {
-  int32Representation: number;
-  uint32Representation: number;
-  sint32Representation: number;
-
-  int64Representation: Long;
-  uint64Representation: Long;
-  sint64Representation: Long;
-
-  booleanRepresentation: boolean;
+  int: string;
+  uint: string;
+  sint: string;
 };
 
 export type Fixed32 = {
@@ -19,8 +12,8 @@ export type Fixed32 = {
 };
 
 export type Fixed64 = {
-  uint64Representation: Long;
-  int64Representation: Long;
+  uint64Representation: string;
+  int64Representation: string;
 };
 
 export type RawField =

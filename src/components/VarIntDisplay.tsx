@@ -1,17 +1,8 @@
-import { ChevronDownIcon } from "@chakra-ui/icons";
-import {
-  HStack,
-  Text,
-  Menu,
-  MenuButton,
-  Button,
-  MenuList,
-  MenuItem,
-} from "@chakra-ui/react";
+import { HStack, Text, Select, Spacer } from "@chakra-ui/react";
 import { useState } from "react";
 import { VarInt } from "../types/field";
 
-const reprs = ["int", "uint", "sint", "boolean"] as const;
+const reprs = ["int", "uint", "sint"] as const;
 type VarIntRepresentation = (typeof reprs)[number];
 
 export function VarIntDisplay({ varInt: varInt }: { varInt: VarInt }) {
@@ -20,30 +11,21 @@ export function VarIntDisplay({ varInt: varInt }: { varInt: VarInt }) {
   //let the user switch between representations
   return (
     <HStack justify="space-between">
-      {repr === "uint" && (
-        <Text fontFamily="mono">{varInt.uint64Representation.toString()}</Text>
-      )}
-      {repr === "int" && (
-        <Text fontFamily="mono">{varInt.int64Representation.toString()}</Text>
-      )}
-      {repr === "boolean" && (
-        <Text fontFamily="mono">{varInt.booleanRepresentation.toString()}</Text>
-      )}
-      {repr === "sint" && (
-        <Text fontFamily="mono">{varInt.sint64Representation.toString()}</Text>
-      )}
-      <Menu variant="outline" size="xs">
-        <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-          {repr}
-        </MenuButton>
-        <MenuList>
-          {reprs.map((repr) => (
-            <MenuItem key={repr} onClick={() => setRepr(repr)}>
-              {repr}
-            </MenuItem>
-          ))}
-        </MenuList>
-      </Menu>
+      {repr === "uint" && <Text fontFamily="mono">{varInt.uint}</Text>}
+      {repr === "int" && <Text fontFamily="mono">{varInt.int}</Text>}
+      {repr === "sint" && <Text fontFamily="mono">{varInt.sint}</Text>}
+      <Spacer />
+      <Select
+        size="sm"
+        onChange={(e) => setRepr(e.target.value as VarIntRepresentation)}
+        maxW="6em"
+      >
+        {reprs.map((repr) => (
+          <option key={repr} value={repr}>
+            {repr}
+          </option>
+        ))}
+      </Select>
     </HStack>
   );
 }

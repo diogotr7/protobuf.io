@@ -1,7 +1,7 @@
 import { Reader } from "protobufjs";
 import { FieldWithNumber, SizedRawMessage } from "./types";
 import { WireType } from "./types/WireType";
-import { RawField } from "./types/field";
+import { RawField, VarInt } from "./types/field";
 
 export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
   if (!bytes || bytes.length === 0)
@@ -9,6 +9,7 @@ export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
 
   const message = readMessage(new Reader(bytes), bytes.length);
   sanityCheckSizes(message);
+  console.log("Decoded message", JSON.stringify(message, null, 2));
   return message;
 }
 
@@ -40,30 +41,29 @@ function readField(reader: Reader): FieldWithNumber {
   switch (wireType) {
     case WireType.Varint: {
       const before = reader.pos;
-      const int32Representation = reader.int32();
+      const varInt: Partial<VarInt> = {};
+
+      try {
+        varInt.int = reader.int32().toString();
+        reader.pos = before;
+        varInt.uint = reader.uint32().toString();
+        reader.pos = before;
+        varInt.sint = reader.sint32().toString();
+        reader.pos = before;
+      } catch (e) {
+        console.debug("Failed reading 32 bit varint, trying 64 bit varint", e);
+        //try to read 32 bit varints. If it fails, it's probably a 64 bit varint
+        reader.pos = before;
+      }
+
+      varInt.int = reader.int64().toString();
       reader.pos = before;
-      const uint32Representation = reader.uint32();
+      varInt.uint = reader.uint64().toString();
       reader.pos = before;
-      const sint32Representation = reader.sint32();
-      reader.pos = before;
-      const int64Representation = reader.int64();
-      reader.pos = before;
-      const uint64Representation = reader.uint64();
-      reader.pos = before;
-      const sint64Representation = reader.sint64();
-      reader.pos = before;
-      const booleanRepresentation = reader.bool();
+      varInt.sint = reader.sint64().toString();
 
       field = {
-        data: {
-          int32Representation,
-          uint32Representation,
-          sint32Representation,
-          int64Representation,
-          uint64Representation,
-          sint64Representation,
-          booleanRepresentation,
-        },
+        data: varInt as VarInt,
         type: "varint",
       };
       break;
@@ -85,9 +85,9 @@ function readField(reader: Reader): FieldWithNumber {
     }
     case WireType.Bit64: {
       const before = reader.pos;
-      const uint64Representation = reader.fixed64();
+      const uint64Representation = reader.fixed64().toString();
       reader.pos = before;
-      const int64Representation = reader.sfixed64();
+      const int64Representation = reader.sfixed64().toString();
 
       field = {
         type: "fixed64",
