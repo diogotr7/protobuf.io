@@ -25,8 +25,7 @@ export function MessageDisplay({ message }: { message: SizedRawMessage }) {
           <Badge colorScheme="orange">Message</Badge>
           <Spacer />
           <Badge colorScheme="yellow">{message.offset} offset</Badge>
-          {/* <Badge colorScheme="red">{message.tagSize} tag</Badge> */}
-          <Badge colorScheme="red">{message.dataSize} data</Badge>
+          <Badge colorScheme="red">{message.dataSize} bytes</Badge>
           <Button size="xs" onClick={onToggle}>
             {isOpen ? <ChevronDownIcon /> : <ChevronUpIcon />}
           </Button>

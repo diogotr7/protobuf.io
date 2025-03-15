@@ -5,12 +5,11 @@ import { RawField } from "./types/field";
 
 export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
   if (!bytes || bytes.length === 0)
-    return { offset: 0, tagSize: 0, dataSize: 0, fields: [] };
+    return { offset: 0, dataSize: 0, fields: [] };
 
   const message = readMessage(new Reader(bytes), bytes.length);
-  const sizedMessage = {
+  const sizedMessage: SizedRawMessage = {
     offset: 0,
-    tagSize: 0,
     dataSize: bytes.length,
     fields: message.fields,
   };
@@ -184,9 +183,6 @@ function readLengthDelimited(reader: Reader): [RawField, number] {
       dataSize: length,
       fields: data.fields,
       offset: before,
-      //Messages don't have tag. The size of the varint header will be included
-      // in the tagSize of the field that contains this message.
-      tagSize: 0,
     };
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.

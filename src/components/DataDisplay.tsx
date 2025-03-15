@@ -18,14 +18,8 @@ export function DataDisplay({
       return <Text fontFamily="mono">{data.toString()}</Text>;
     case "message":
       return <MessageDisplay message={data} />;
-    // case "repeatedField":
-    //   return <RepeatedFieldDisplay fields={data} />;
     case "string":
-      return (
-        <Text fontFamily="mono">
-          {data} ({data.length} characters)
-        </Text>
-      );
+      return <Text fontFamily="mono">{data}</Text>;
     case "varint":
       return <VarIntDisplay varInt={data} />;
   }
