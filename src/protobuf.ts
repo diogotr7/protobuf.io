@@ -1,55 +1,44 @@
 import { Reader } from "protobufjs";
-import { RawField, RawMessage, SizedRawField, WireType } from "./types";
+import {
+  FieldWithNumber,
+  RawField,
+  RawMessage,
+  SizedRawMessage,
+  WireType,
+} from "./types";
 
-export function decodeBytes(bytes: Uint8Array): RawMessage {
+export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
   if (!bytes || bytes.length === 0)
-    return { offset: 0, tagSize: 0, dataSize: 0, fields: new Map() };
+    return { offset: 0, tagSize: 0, dataSize: 0, fields: [] };
 
-  return readMessage(new Reader(bytes), 0, bytes.length);
+  const message = readMessage(new Reader(bytes), bytes.length);
+  const sizedMessage = {
+    offset: 0,
+    tagSize: 0,
+    dataSize: bytes.length,
+    fields: message.fields,
+  };
+  sanityCheckSizes(sizedMessage, bytes.length);
+  return sizedMessage;
 }
 
-export function readMessage(
-  reader: Reader,
-  headerSize: number,
-  dataSize: number
-): RawMessage {
-  const fields: Map<number, SizedRawField> = new Map();
+export function readMessage(reader: Reader, dataSize: number): RawMessage {
+  const fields: FieldWithNumber[] = [];
 
   const initialPos = reader.pos;
   while (reader.pos < initialPos + dataSize) {
-    const [fieldNumber, field] = readField(reader);
-    if (!fields.has(fieldNumber)) {
-      fields.set(fieldNumber, field);
-      continue;
-    }
-
-    //if we already have a field with this number. It's a repeated field.
-    //Check if we already have a repeated field, if not, create one.
-    const existingField = fields.get(fieldNumber)!;
-    if (existingField.type === "repeatedField") {
-      //TODO: check mismatched types?
-      existingField.data.push(field);
-    } else {
-      //TODO: verify that the existing field is of the same type as the new field?
-      fields.set(fieldNumber, {
-        type: "repeatedField",
-        data: [existingField, field],
-        offset: existingField.offset,
-        dataSize: existingField.dataSize + field.dataSize,
-        tagSize: existingField.tagSize + field.tagSize,
-      });
-    }
+    fields.push(readField(reader));
   }
 
   return {
-    offset: initialPos - headerSize,
-    tagSize: headerSize,
-    dataSize,
+    // offset: initialPos - headerSize,
+    // tagSize: headerSize,
+    // dataSize,
     fields,
   };
 }
 
-function readField(reader: Reader): [number, SizedRawField] {
+function readField(reader: Reader): FieldWithNumber {
   const tagBefore = reader.pos;
   //todo: should this be a uint64 instead?
   const tag = reader.uint32();
@@ -140,15 +129,15 @@ function readField(reader: Reader): [number, SizedRawField] {
   }
 
   const dataBytes = reader.pos - dataBefore;
-  return [
+  return {
     fieldNumber,
-    {
+    field: {
       ...field,
       offset: tagBefore,
       tagSize: tagBytes,
       dataSize: dataBytes,
     },
-  ];
+  };
 }
 
 //TODO: make this return a SizedRawField.
@@ -180,7 +169,13 @@ function readLengthDelimited(reader: Reader): RawField {
     //  then the actual data of the field repeated until we finish the payload (with no more tags).
     // Checking for its existence without type information is a bit of a pain. Probably force read a tag,
     //  then be more permissive reading following tags within that length delimited payload.
-    const data = readMessage(reader, varIntHeaderLength, length);
+    const data = readMessage(reader, length);
+    const sizedMessage: SizedRawMessage = {
+      dataSize: length,
+      fields: data.fields,
+      offset: before,
+      tagSize: varIntHeaderLength,
+    };
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.
     // We try to handle deciding whether it's a submessage or a repeated field as best as we can.
@@ -188,16 +183,17 @@ function readLengthDelimited(reader: Reader): RawField {
     // If there's multiple with the same field number, it has to be a repeated field.
     // If there's multiple with different field numbers, it's a submessage.
 
-    const asArray = Array.from(data.fields.entries());
-    if (asArray.length > 1 && asArray.every((f) => f[0] === asArray[0][0])) {
-      return {
-        type: "repeatedField",
-        data: Array.from(data.fields.values()),
-      };
-    }
+    //TODO: handle packed repeated fields.
+    // const asArray = Array.from(data.fields.entries());
+    // if (asArray.length > 1 && asArray.every((f) => f[0] === asArray[0][0])) {
+    //   return {
+    //     type: "repeatedField",
+    //     data: Array.from(data.fields.values()),
+    //   };
+    // }
 
     return {
-      data: data,
+      data: sizedMessage,
       type: "message",
     };
   } catch (e) {
@@ -208,8 +204,6 @@ function readLengthDelimited(reader: Reader): RawField {
     );
     //let the other parsers try to parse this.
   }
-
-  console.debug("Trying to parse as string or bytes.");
 
   //the other two parsers don't really care about a Reader, so we can just pass the bytes.
   const bytes = reader.bytes();
@@ -247,5 +241,21 @@ function tryReadString(bytes: Uint8Array): string | null {
       e
     );
     return null;
+  }
+}
+
+function sanityCheckSizes(message: SizedRawMessage, dataSize: number) {
+  const calculatedDataSize = Array.from(message.fields.values()).reduce(
+    (acc, field) => acc + field.field.tagSize + field.field.dataSize,
+    0
+  );
+  if (calculatedDataSize !== dataSize) {
+    console.error(
+      `Calculated data size ${calculatedDataSize} does not match actual data size ${dataSize}`
+    );
+  } else {
+    console.debug(
+      `Calculated data size ${calculatedDataSize} matches actual data size ${dataSize}`
+    );
   }
 }

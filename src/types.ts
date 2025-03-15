@@ -29,20 +29,25 @@ export type Size = {
 };
 
 export type RawMessage = {
-  fields: Map<number, SizedRawField>;
-} & Size;
-
+  fields: FieldWithNumber[];
+};
+export type FieldWithNumber = {
+  fieldNumber: number;
+  field: SizedRawField;
+};
+export type SizedRawMessage = RawMessage & Size;
 export type SizedRawField = RawField & Size;
 
 export type RawField =
   | {
       type: "message";
-      data: RawMessage;
+      data: SizedRawMessage;
     }
-  | {
-      type: "repeatedField";
-      data: RawField[];
-    }
+  //TODO: Implement packedField
+  //   | {
+  //       type: "packedField";
+  //       data: RawField[];
+  //     }
   | {
       type: "varint";
       data: VarInt;

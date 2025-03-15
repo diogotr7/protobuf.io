@@ -2,7 +2,6 @@ import { Text } from "@chakra-ui/react";
 import { RawField } from "../types";
 import { BytesDisplay } from "./BytesDisplay";
 import { MessageDisplay } from "./MessageDisplay";
-import { RepeatedFieldDisplay } from "./RepeatedFieldDisplay";
 import { VarIntDisplay } from "./VarIntDisplay";
 
 export function DataDisplay({ field: { type, data } }: { field: RawField }) {
@@ -15,8 +14,8 @@ export function DataDisplay({ field: { type, data } }: { field: RawField }) {
       return <Text fontFamily="mono">{data.toString()}</Text>;
     case "message":
       return <MessageDisplay message={data} />;
-    case "repeatedField":
-      return <RepeatedFieldDisplay fields={data} />;
+    // case "repeatedField":
+    //   return <RepeatedFieldDisplay fields={data} />;
     case "string":
       return <Text fontFamily="mono">{data}</Text>;
     case "varint":

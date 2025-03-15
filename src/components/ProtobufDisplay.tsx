@@ -21,6 +21,7 @@ import { useProtoActions as useBufferManagement } from "../hooks/useProtoActions
 import { useLinkSharing } from "../hooks/useLinkSharing";
 import { InfoIcon } from "@chakra-ui/icons";
 import { examples } from "../utils/exampleBuffers";
+import { HexView } from "./HexView"; // Import the new component
 
 export function ProtobufDisplay() {
   const toast = useToast();
@@ -170,6 +171,15 @@ export function ProtobufDisplay() {
           </Box>
         </Flex>
       </Card>
+
+      {/* Add the HexView component here, between the buttons and the message display */}
+      {buffer.byteLength > 0 && (
+        <HexView
+          buffer={buffer}
+          rootMessage={typeDefinition}
+          bytesPerRow={32}
+        />
+      )}
 
       {typeDefinition !== null ? (
         <MessageDisplay message={typeDefinition} />

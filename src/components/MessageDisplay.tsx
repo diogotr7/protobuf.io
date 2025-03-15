@@ -9,18 +9,13 @@ import {
   Button,
   Collapse,
 } from "@chakra-ui/react";
-import { useMemo } from "react";
-import { RawMessage } from "../types";
+import { SizedRawMessage } from "../types";
 import { FieldDisplay } from "./FieldDisplay";
 
-export function MessageDisplay({ message }: { message: RawMessage }) {
+export function MessageDisplay({ message }: { message: SizedRawMessage }) {
   const { isOpen, onToggle } = useDisclosure({
     defaultIsOpen: true,
   });
-  const asArray = useMemo(
-    () => Array.from(message.fields.entries()),
-    [message]
-  );
 
   return (
     <Card p={2} variant="outline">
@@ -37,7 +32,7 @@ export function MessageDisplay({ message }: { message: RawMessage }) {
           </Button>
         </HStack>
         <Collapse in={isOpen} animateOpacity startingHeight={0.0001}>
-          {asArray.map(([fieldNumber, field], idx) => (
+          {message.fields.map(({ fieldNumber, field }, idx) => (
             <FieldDisplay key={idx} field={[fieldNumber, field]} />
           ))}
         </Collapse>
