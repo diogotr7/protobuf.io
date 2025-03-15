@@ -1,8 +1,8 @@
 import { Stack, HStack, Badge } from "@chakra-ui/react";
 import { DataDisplay } from "./DataDisplay";
-import { RawField } from "../types";
+import { SizedRawField } from "../types";
 
-export function RepeatedFieldDisplay({ fields }: { fields: RawField[] }) {
+export function RepeatedFieldDisplay({ fields }: { fields: SizedRawField[] }) {
   return (
     <Stack w="full" spacing={2} align="stretch">
       <HStack>

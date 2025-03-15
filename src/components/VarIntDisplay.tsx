@@ -9,7 +9,7 @@ import {
   MenuItem,
 } from "@chakra-ui/react";
 import { useState } from "react";
-import { VarInt } from "../types";
+import { VarInt } from "../types/field";
 
 const reprs = ["int", "uint", "sint", "boolean"] as const;
 type VarIntRepresentation = (typeof reprs)[number];

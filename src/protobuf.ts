@@ -1,11 +1,7 @@
 import { Reader } from "protobufjs";
-import {
-  FieldWithNumber,
-  RawField,
-  RawMessage,
-  SizedRawMessage,
-  WireType,
-} from "./types";
+import { FieldWithNumber, RawMessage, SizedRawMessage } from "./types";
+import { WireType } from "./types/WireType";
+import { RawField } from "./types/field";
 
 export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
   if (!bytes || bytes.length === 0)
@@ -110,7 +106,21 @@ function readField(reader: Reader): FieldWithNumber {
       break;
     }
     case WireType.LengthDelimited: {
-      field = readLengthDelimited(reader);
+      const [data, varIntHeaderLength] = readLengthDelimited(reader);
+      const dataBytes = reader.pos - dataBefore;
+      //early return here because handling is different
+      return {
+        fieldNumber,
+        field: {
+          ...data,
+          offset: tagBefore,
+          tagSize: tagBytes + varIntHeaderLength,
+          dataSize: dataBytes - varIntHeaderLength,
+          //   tagSize: tagBytes,
+          //   dataSize: dataBytes,
+        },
+      };
+
       break;
     }
     case WireType.StartGroup: {
@@ -147,7 +157,7 @@ function readField(reader: Reader): FieldWithNumber {
 //  data size is the value of the varint
 
 //If the data of the field is a submessage, it will deal with its size itself?
-function readLengthDelimited(reader: Reader): RawField {
+function readLengthDelimited(reader: Reader): [RawField, number] {
   //possible data:
   // 1. submessage
   // 2. repeated field
@@ -174,7 +184,9 @@ function readLengthDelimited(reader: Reader): RawField {
       dataSize: length,
       fields: data.fields,
       offset: before,
-      tagSize: varIntHeaderLength,
+      //Messages don't have tag. The size of the varint header will be included
+      // in the tagSize of the field that contains this message.
+      tagSize: 0,
     };
 
     //kind of dodgy logic incoming, more of a heuristic than anything else.
@@ -192,10 +204,13 @@ function readLengthDelimited(reader: Reader): RawField {
     //   };
     // }
 
-    return {
-      data: sizedMessage,
-      type: "message",
-    };
+    return [
+      {
+        data: sizedMessage,
+        type: "message",
+      },
+      varIntHeaderLength,
+    ];
   } catch (e) {
     reader.pos = before;
     console.debug(
@@ -211,17 +226,23 @@ function readLengthDelimited(reader: Reader): RawField {
   //if try read tag fails, we need to try to parse it as a string.
   const possibleString = tryReadString(bytes);
   if (possibleString) {
-    return {
-      data: possibleString,
-      type: "string",
-    };
+    return [
+      {
+        data: possibleString,
+        type: "string",
+      },
+      varIntHeaderLength,
+    ];
   }
 
   //if that fails, just assume it's bytes.
-  return {
-    data: bytes,
-    type: "bytes",
-  };
+  return [
+    {
+      data: bytes,
+      type: "bytes",
+    },
+    varIntHeaderLength,
+  ];
 }
 
 function tryReadString(bytes: Uint8Array): string | null {
@@ -245,17 +266,20 @@ function tryReadString(bytes: Uint8Array): string | null {
 }
 
 function sanityCheckSizes(message: SizedRawMessage, dataSize: number) {
-  const calculatedDataSize = Array.from(message.fields.values()).reduce(
-    (acc, field) => acc + field.field.tagSize + field.field.dataSize,
-    0
-  );
-  if (calculatedDataSize !== dataSize) {
-    console.error(
-      `Calculated data size ${calculatedDataSize} does not match actual data size ${dataSize}`
+  let pointer = 0;
+  for (const { field } of message.fields) {
+    if (field.offset !== pointer) {
+      throw new Error(
+        `Field offset ${field.offset} does not match expected offset ${pointer}.`
+      );
+    }
+    pointer += field.tagSize + field.dataSize;
+  }
+  if (pointer !== dataSize) {
+    console.warn(
+      `Expected message to be ${dataSize} bytes long, but it was ${pointer} bytes long: ${message}`
     );
   } else {
-    console.debug(
-      `Calculated data size ${calculatedDataSize} matches actual data size ${dataSize}`
-    );
+    console.log(`Message was ${dataSize} bytes long, as expected.`);
   }
 }
