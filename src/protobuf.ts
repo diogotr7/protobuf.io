@@ -1,5 +1,5 @@
 import { Reader } from "protobufjs";
-import { FieldWithNumber, RawMessage, SizedRawMessage } from "./types";
+import { FieldWithNumber, SizedRawMessage } from "./types";
 import { WireType } from "./types/WireType";
 import { RawField } from "./types/field";
 
@@ -8,16 +8,11 @@ export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
     return { offset: 0, dataSize: 0, fields: [] };
 
   const message = readMessage(new Reader(bytes), bytes.length);
-  const sizedMessage: SizedRawMessage = {
-    offset: 0,
-    dataSize: bytes.length,
-    fields: message.fields,
-  };
-  sanityCheckSizes(sizedMessage, bytes.length);
-  return sizedMessage;
+  sanityCheckSizes(message);
+  return message;
 }
 
-export function readMessage(reader: Reader, dataSize: number): RawMessage {
+export function readMessage(reader: Reader, dataSize: number): SizedRawMessage {
   const fields: FieldWithNumber[] = [];
 
   const initialPos = reader.pos;
@@ -26,9 +21,8 @@ export function readMessage(reader: Reader, dataSize: number): RawMessage {
   }
 
   return {
-    // offset: initialPos - headerSize,
-    // tagSize: headerSize,
-    // dataSize,
+    offset: initialPos,
+    dataSize,
     fields,
   };
 }
@@ -115,8 +109,6 @@ function readField(reader: Reader): FieldWithNumber {
           offset: tagBefore,
           tagSize: tagBytes + varIntHeaderLength,
           dataSize: dataBytes - varIntHeaderLength,
-          //   tagSize: tagBytes,
-          //   dataSize: dataBytes,
         },
       };
 
@@ -127,10 +119,10 @@ function readField(reader: Reader): FieldWithNumber {
       //   console.debug("Skipping group.");
       //   //hacky, skip the group and go next
       //   return readField(reader);
-      throw new Error("groups are not supported");
+      throw new Error("groups are not supported 1");
     }
     case WireType.EndGroup: {
-      throw new Error("groups are not supported");
+      throw new Error("groups are not supported 2");
     }
     default: {
       throw new Error(`unknown wire type ${wireType} ${WireType[wireType]}`);
@@ -148,12 +140,6 @@ function readField(reader: Reader): FieldWithNumber {
     },
   };
 }
-
-//TODO: make this return a SizedRawField.
-// I think we have enough information:
-//  the offset is trivial.
-//  tag size is just the byte length of the varint
-//  data size is the value of the varint
 
 //If the data of the field is a submessage, it will deal with its size itself?
 function readLengthDelimited(reader: Reader): [RawField, number] {
@@ -178,31 +164,10 @@ function readLengthDelimited(reader: Reader): [RawField, number] {
     //  then the actual data of the field repeated until we finish the payload (with no more tags).
     // Checking for its existence without type information is a bit of a pain. Probably force read a tag,
     //  then be more permissive reading following tags within that length delimited payload.
-    const data = readMessage(reader, length);
-    const sizedMessage: SizedRawMessage = {
-      dataSize: length,
-      fields: data.fields,
-      offset: before,
-    };
-
-    //kind of dodgy logic incoming, more of a heuristic than anything else.
-    // We try to handle deciding whether it's a submessage or a repeated field as best as we can.
-    // If we only have one field, there's no way to tell for sure, we just assume it's a submessage.
-    // If there's multiple with the same field number, it has to be a repeated field.
-    // If there's multiple with different field numbers, it's a submessage.
-
-    //TODO: handle packed repeated fields.
-    // const asArray = Array.from(data.fields.entries());
-    // if (asArray.length > 1 && asArray.every((f) => f[0] === asArray[0][0])) {
-    //   return {
-    //     type: "repeatedField",
-    //     data: Array.from(data.fields.values()),
-    //   };
-    // }
-
+    const subMessage = readMessage(reader, length);
     return [
       {
-        data: sizedMessage,
+        data: subMessage,
         type: "message",
       },
       varIntHeaderLength,
@@ -261,21 +226,20 @@ function tryReadString(bytes: Uint8Array): string | null {
   }
 }
 
-function sanityCheckSizes(message: SizedRawMessage, dataSize: number) {
-  let pointer = 0;
+function sanityCheckSizes(message: SizedRawMessage, pointer = 0) {
   for (const { field } of message.fields) {
     if (field.offset !== pointer) {
       throw new Error(
-        `Field offset ${field.offset} does not match expected offset ${pointer}.`
+        `Field offset ${field.offset} does not match pointer ${pointer}`
       );
     }
-    pointer += field.tagSize + field.dataSize;
-  }
-  if (pointer !== dataSize) {
-    console.warn(
-      `Expected message to be ${dataSize} bytes long, but it was ${pointer} bytes long: ${message}`
-    );
-  } else {
-    console.log(`Message was ${dataSize} bytes long, as expected.`);
+
+    pointer += field.tagSize;
+
+    if (field.type === "message") {
+      sanityCheckSizes(field.data, pointer);
+    }
+
+    pointer += field.dataSize;
   }
 }
