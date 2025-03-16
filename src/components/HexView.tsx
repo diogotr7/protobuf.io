@@ -175,7 +175,7 @@ export function HexView({
           {rows.map((row, rowIndex) => (
             <Flex key={rowIndex} align="center" width="100%">
               <Text fontFamily="mono" color="gray.500" w="60px" flexShrink={0}>
-                {(rowIndex * bytesPerRow).toString(16).padStart(4, "0")}:
+                {(rowIndex * bytesPerRow).toString(16).padStart(4, "0")}
               </Text>
 
               <Flex wrap="wrap" flex="1" justifyContent="flex-start">

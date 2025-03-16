@@ -9,19 +9,17 @@ import {
   ButtonGroup,
   Text,
   useToast,
-  Box,
   Tooltip,
   Wrap,
   HStack,
   Stack,
 } from "@chakra-ui/react";
 import { MessageDisplay } from "./MessageDisplay";
-import { bytesToHexDisplay } from "../utils/conversions";
 import { useProtoActions as useBufferManagement } from "../hooks/useProtoActions";
 import { useLinkSharing } from "../hooks/useLinkSharing";
 import { InfoIcon } from "@chakra-ui/icons";
 import { examples } from "../utils/exampleBuffers";
-import { HexView } from "./HexView"; // Import the new component
+import { HexView } from "./HexView";
 
 export function ProtobufDisplay() {
   const toast = useToast();
@@ -55,18 +53,12 @@ export function ProtobufDisplay() {
     }
   }, [buffer]);
 
-  const bufferDisplay = useMemo(() => {
-    if (buffer.byteLength === 0) return "";
-
-    return bytesToHexDisplay(buffer);
-  }, [buffer]);
-
   return (
     <Container maxW="container.lg" py={8}>
       <Heading mb={6}>Protobuf Inspector</Heading>
 
-      <Card p={4} mb={6} variant="outline">
-        <Flex direction="column" gap={4}>
+      <Card p={2} mb={6} variant="outline">
+        <Flex direction="column" gap={2}>
           <Wrap spacing={3} justify="space-evenly">
             <Card p={2} mb={2} variant="outline">
               <Flex direction="column" gap={0}>
@@ -159,20 +151,14 @@ export function ProtobufDisplay() {
               </Flex>
             </Card>
           </Wrap>
-          <Box>
-            <Text fontWeight="bold" mb={2}>
-              Current Buffer ({buffer.byteLength} bytes):
-            </Text>
-            <Card variant="outline" p={3}>
-              <Text fontFamily="mono" fontSize="sm" noOfLines={2}>
-                {bufferDisplay || "(empty)"}
-              </Text>
-            </Card>
-          </Box>
         </Flex>
       </Card>
 
-      {/* Add the HexView component here, between the buttons and the message display */}
+      {/* TODO: find a way that makes sense UX wise to add this at some point.
+          Not sure if we even need it atm, but at least the editor and such is done.
+       */}
+      {/* <ProtoDefinitionEditor /> */}
+
       {buffer.byteLength > 0 && (
         <HexView buffer={buffer} rootMessage={typeDefinition} />
       )}

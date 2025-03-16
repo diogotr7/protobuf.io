@@ -13,8 +13,12 @@
   "dependencies": {
     "@chakra-ui/icons": "2",
     "@chakra-ui/react": "2",
+    "@codemirror/lint": "^6.8.4",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@uiw/codemirror-extensions-langs": "^4.23.10",
+    "@uiw/codemirror-theme-tokyo-night-storm": "^4.23.10",
+    "@uiw/react-codemirror": "^4.23.10",
     "framer-motion": "^12.5.0",
     "protobufjs": "^7.4.0",
     "react": "^18.3.1",
