@@ -7,10 +7,17 @@ import CodeMirror from "@uiw/react-codemirror";
 
 const protobufGrammar = langs.protobuf();
 
-export function ProtoDefinitionEditor() {
+export function Editor() {
   const colorMode = useColorMode();
 
-  const [text, setText] = useState("// Paste your protobuf data here");
+  const [text, setText] = useState(`
+syntax = "proto2";
+
+message RGB24 {
+    required uint32 r = 1;
+    required uint32 g = 2;
+    required uint32 b = 3;
+}`);
 
   const [parsedProtoDef, setParsedProtoDef] = useState<
     IParserResult | string | null

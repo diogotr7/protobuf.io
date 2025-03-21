@@ -1,9 +1,8 @@
 import { useCallback, useMemo } from "react";
-import { decodeBytes } from "../protobuf";
+import { decodeBytes } from "../../protobuf";
 import {
   Flex,
   Container,
-  Heading,
   Card,
   Button,
   ButtonGroup,
@@ -15,13 +14,13 @@ import {
   Stack,
 } from "@chakra-ui/react";
 import { MessageDisplay } from "./MessageDisplay";
-import { useProtoActions as useBufferManagement } from "../hooks/useProtoActions";
-import { useLinkSharing } from "../hooks/useLinkSharing";
+import { useProtoActions as useBufferManagement } from "../../hooks/useProtoActions";
+import { useLinkSharing } from "../../hooks/useLinkSharing";
 import { InfoIcon } from "@chakra-ui/icons";
-import { examples } from "../utils/exampleBuffers";
+import { examples } from "../../utils/exampleBuffers";
 import { HexView } from "./HexView";
 
-export function ProtobufDisplay() {
+export function Inspector() {
   const toast = useToast();
 
   const {
@@ -54,10 +53,14 @@ export function ProtobufDisplay() {
   }, [buffer]);
 
   return (
-    <Container maxW="container.lg" py={8}>
-      <Heading mb={6}>Protobuf Inspector</Heading>
-
-      <Card p={2} mb={6} variant="outline">
+    <Container
+      maxW="container.lg"
+      p={0}
+      display="flex"
+      flexDirection="column"
+      gap={2}
+    >
+      <Card p={2} variant="outline">
         <Flex direction="column" gap={2}>
           <Wrap spacing={3} justify="space-evenly">
             <Card p={2} mb={2} variant="outline">
@@ -153,11 +156,6 @@ export function ProtobufDisplay() {
           </Wrap>
         </Flex>
       </Card>
-
-      {/* TODO: find a way that makes sense UX wise to add this at some point.
-          Not sure if we even need it atm, but at least the editor and such is done.
-       */}
-      {/* <ProtoDefinitionEditor /> */}
 
       {buffer.byteLength > 0 && (
         <HexView buffer={buffer} rootMessage={typeDefinition} />

@@ -1,6 +1,6 @@
 import { HStack, Text, Select, Spacer } from "@chakra-ui/react";
 import { useState } from "react";
-import { VarInt } from "../types/field";
+import { VarInt } from "../../types/field";
 
 const reprs = ["int", "uint", "sint"] as const;
 type VarIntRepresentation = (typeof reprs)[number];

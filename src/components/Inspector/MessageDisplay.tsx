@@ -9,7 +9,7 @@ import {
   Button,
   Collapse,
 } from "@chakra-ui/react";
-import { SizedRawMessage } from "../types";
+import { SizedRawMessage } from "../../types";
 import { FieldDisplay } from "./FieldDisplay";
 
 export function MessageDisplay({ message }: { message: SizedRawMessage }) {

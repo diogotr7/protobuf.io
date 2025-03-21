@@ -9,8 +9,8 @@ import {
   Divider,
   Stack,
 } from "@chakra-ui/react";
-import { SizedRawMessage } from "../types";
 import { useMemo } from "react";
+import { SizedRawMessage } from "../../types";
 
 interface ByteInfo {
   offset: number;
@@ -152,7 +152,7 @@ export function HexView({
   }
 
   return (
-    <Card p={4} mb={6} variant="outline">
+    <Card p={4} variant="outline">
       <VStack spacing={4} align="stretch">
         <Heading size="sm">Hex Byte Visualization</Heading>
 
