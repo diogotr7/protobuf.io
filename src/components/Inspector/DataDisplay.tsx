@@ -1,8 +1,8 @@
 import { Text } from "@chakra-ui/react";
+import { SizedRawField } from "../../types";
 import { BytesDisplay } from "./BytesDisplay";
 import { MessageDisplay } from "./MessageDisplay";
 import { VarIntDisplay } from "./VarIntDisplay";
-import { SizedRawField } from "../types";
 
 export function DataDisplay({
   field: { type, data },

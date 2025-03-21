@@ -1,5 +1,5 @@
 import { Card, HStack, Badge, Spacer } from "@chakra-ui/react";
-import { FieldWithNumber } from "../types";
+import { FieldWithNumber } from "../../types";
 import { DataDisplay } from "./DataDisplay";
 
 export function FieldDisplay({ field }: { field: FieldWithNumber }) {
