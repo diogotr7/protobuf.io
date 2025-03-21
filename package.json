@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "test": "vitest"
   },
-  "devDependencies": {
+  "dependencies": {
     "@chakra-ui/icons": "2",
     "@chakra-ui/react": "2",
     "@codemirror/lint": "^6.8.4",

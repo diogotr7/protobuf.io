@@ -1,4 +1,4 @@
-# Protobuf Inspector
+# protobuf.io
 
 A lightweight web application for inspecting and visualizing Protocol Buffer binary data.
 

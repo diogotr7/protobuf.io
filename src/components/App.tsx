@@ -19,7 +19,7 @@ export function App() {
     <Container maxW="container.lg" py={2}>
       <HStack justify="space-between" align="center" mb={4}>
         <Heading>protobuf.io</Heading>
-        <Link href="https://github.com/diogotr7/protobuf-inspector" isExternal>
+        <Link href="https://github.com/diogotr7/protobuf.io" isExternal>
           <IconButton
             aria-label="GitHub repository"
             icon={<FaGithub />}
