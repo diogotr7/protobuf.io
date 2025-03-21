@@ -18,7 +18,12 @@ export function base64ToArrayBuffer(base64: string): Uint8Array {
 }
 
 export function hexToArrayBuffer(hex: string): Uint8Array {
-  const hexArray = hex.split(" ");
+  let hexArray = hex.split(" ");
+  if (hexArray.length === 1) {
+    //split by 2 characters
+    hexArray = hex.match(/.{1,2}/g) || [];
+  }
+
   const bytes = new Uint8Array(hexArray.length);
   for (let i = 0; i < hexArray.length; i++) {
     bytes[i] = parseInt(hexArray[i], 16);

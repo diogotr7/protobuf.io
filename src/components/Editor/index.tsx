@@ -1,17 +1,19 @@
 import {
   Box,
   Card,
-  Divider,
   HStack,
   Text,
   useColorMode,
   VStack,
 } from "@chakra-ui/react";
 import { IParserResult, parse } from "protobufjs";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { langs } from "@uiw/codemirror-extensions-langs";
 import { tokyoNightStorm } from "@uiw/codemirror-theme-tokyo-night-storm";
 import CodeMirror from "@uiw/react-codemirror";
+import { HexView } from "../Inspector/HexView";
+import { decodeBytes } from "../../protobuf";
+import JSON5 from "json5";
 
 const protobufGrammar = langs.protobuf();
 const jsonGrammar = langs.json();
@@ -31,6 +33,8 @@ export function Editor() {
     "b": 0
 }`);
 
+  const [buffer, setBuffer] = useState(new Uint8Array(0));
+
   const [parsedProtoDef, setParsedProtoDef] = useState<
     IParserResult | string | null
   >(null);
@@ -47,6 +51,33 @@ export function Editor() {
     }
   }, [protoText]);
 
+  useEffect(() => {
+    //encode json to buffer using proto definition
+    if (parsedProtoDef === null || typeof parsedProtoDef === "string") {
+      return;
+    }
+
+    try {
+      const buffer = parsedProtoDef.root
+        .lookupType("RGB24")
+        .encode(JSON5.parse(jsonText))
+        .finish();
+
+      setBuffer(buffer);
+    } catch (e) {
+      console.error("Error encoding JSON to buffer:", e);
+    }
+  }, [jsonText]);
+
+  const typeDefinition = useMemo(() => {
+    try {
+      return buffer.byteLength > 0 ? decodeBytes(buffer) : null;
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }, [buffer]);
+
   return (
     <Card p={4} mb={6} variant="outline" display="flex" flexDirection="column">
       <VStack spacing={4} width="100%">
@@ -62,7 +93,9 @@ export function Editor() {
             <Text color="gray.500">No valid protobuf data detected</Text>
           )}
         </Box>
-        <Divider />
+        <Box width="100%">
+          <HexView buffer={buffer} rootMessage={typeDefinition} />
+        </Box>
 
         <HStack spacing={4} width="100%">
           <Box flex="1">

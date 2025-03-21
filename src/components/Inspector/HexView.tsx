@@ -5,7 +5,6 @@ import {
   Tooltip,
   VStack,
   Badge,
-  Heading,
   Divider,
   Stack,
 } from "@chakra-ui/react";
@@ -154,22 +153,6 @@ export function HexView({
   return (
     <Card p={4} variant="outline">
       <VStack spacing={4} align="stretch">
-        <Heading size="sm">Hex Byte Visualization</Heading>
-
-        <Flex wrap="wrap" gap={2}>
-          <Badge colorScheme="yellow">Tag</Badge>
-          <Badge colorScheme="purple">VarInt</Badge>
-          <Badge colorScheme="green">String</Badge>
-          <Badge colorScheme="blue">Message</Badge>
-          <Badge colorScheme="red">Bytes</Badge>
-          <Badge colorScheme="teal">Fixed32</Badge>
-          <Badge colorScheme="orange">Fixed64</Badge>
-          <Badge colorScheme="pink">Repeated</Badge>
-          <Badge colorScheme="gray">Unknown</Badge>
-        </Flex>
-
-        <Divider />
-
         {/* Adjust spacing so that the actual byte rows line up close together */}
         <Stack spacing={0}>
           {rows.map((row, rowIndex) => (
@@ -201,6 +184,18 @@ export function HexView({
             </Flex>
           ))}
         </Stack>
+        <Divider />
+        <Flex wrap="wrap" gap={1}>
+          <Badge colorScheme="yellow">Tag</Badge>
+          <Badge colorScheme="purple">VarInt</Badge>
+          <Badge colorScheme="green">String</Badge>
+          <Badge colorScheme="blue">Message</Badge>
+          <Badge colorScheme="red">Bytes</Badge>
+          <Badge colorScheme="teal">Fixed32</Badge>
+          <Badge colorScheme="orange">Fixed64</Badge>
+          <Badge colorScheme="pink">Repeated</Badge>
+          <Badge colorScheme="gray">Unknown</Badge>
+        </Flex>
       </VStack>
     </Card>
   );
