@@ -31,8 +31,8 @@ export function MessageDisplay({ message }: { message: SizedRawMessage }) {
           </Button>
         </HStack>
         <Collapse in={isOpen} animateOpacity startingHeight={0.0001}>
-          {message.fields.map(({ fieldNumber, field }, idx) => (
-            <FieldDisplay key={idx} field={[fieldNumber, field]} />
+          {message.fields.map((field, idx) => (
+            <FieldDisplay key={idx} field={field} />
           ))}
         </Collapse>
       </Stack>

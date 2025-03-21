@@ -4,9 +4,8 @@ export type RawMessage = {
   fields: FieldWithNumber[];
 };
 
-export type FieldWithNumber = {
+export type FieldWithNumber = SizedRawField & {
   fieldNumber: number;
-  field: SizedRawField;
 };
 
 export type SizedRawMessage = RawMessage & {

@@ -68,13 +68,11 @@ function readField(reader: Reader): FieldWithNumber {
 
       return {
         fieldNumber,
-        field: {
-          type: "varint",
-          data,
-          offset,
-          tagSize,
-          dataSize,
-        },
+        type: "varint",
+        data,
+        offset,
+        tagSize,
+        dataSize,
       };
     }
     case WireType.Bit32: {
@@ -91,13 +89,11 @@ function readField(reader: Reader): FieldWithNumber {
 
       return {
         fieldNumber,
-        field: {
-          type: "fixed32",
-          offset,
-          tagSize,
-          dataSize,
-          data,
-        },
+        type: "fixed32",
+        offset,
+        tagSize,
+        dataSize,
+        data,
       };
     }
     case WireType.Bit64: {
@@ -114,13 +110,11 @@ function readField(reader: Reader): FieldWithNumber {
 
       return {
         fieldNumber,
-        field: {
-          type: "fixed64",
-          offset,
-          tagSize,
-          dataSize,
-          data,
-        },
+        type: "fixed64",
+        offset,
+        tagSize,
+        dataSize,
+        data,
       };
     }
     case WireType.LengthDelimited: {
@@ -129,14 +123,12 @@ function readField(reader: Reader): FieldWithNumber {
       //early return here because handling is different
       return {
         fieldNumber,
-        field: {
-          ...data,
-          offset,
-          //Adjusting sizes so the varintheader
-          // is included as part of the tag, not the data.
-          tagSize: tagSize + varIntHeaderLength,
-          dataSize: dataBytes - varIntHeaderLength,
-        },
+        ...data,
+        offset,
+        //Adjusting sizes so the varintheader
+        // is included as part of the tag, not the data.
+        tagSize: tagSize + varIntHeaderLength,
+        dataSize: dataBytes - varIntHeaderLength,
       };
     }
     case WireType.StartGroup: {
@@ -241,7 +233,7 @@ function tryReadString(bytes: Uint8Array): string | null {
 }
 
 function sanityCheckSizes(message: SizedRawMessage, pointer = 0) {
-  for (const { field } of message.fields) {
+  for (const field of message.fields) {
     if (field.offset !== pointer) {
       throw new Error(
         `Field offset ${field.offset} does not match pointer ${pointer}`

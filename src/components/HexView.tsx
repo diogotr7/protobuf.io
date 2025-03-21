@@ -67,7 +67,7 @@ function processMessage(
   //const messageStart = message.offset;
   //const messageEnd = messageStart + message.tagSize + message.dataSize;
   // Process each field in the message
-  message.fields.forEach(({ field, fieldNumber }) => {
+  message.fields.forEach((field) => {
     const fieldStart = field.offset;
     const fieldEnd = fieldStart + field.tagSize + field.dataSize;
 
@@ -77,10 +77,10 @@ function processMessage(
         offset: i,
         value: i,
         type: "tag",
-        fieldNumber,
+        fieldNumber: field.fieldNumber,
         fieldType: field.type,
         messageDepth,
-        description: `Field ${fieldNumber} Tag (${field.type})`,
+        description: `Field ${field.fieldNumber} Tag (${field.type})`,
         color: getColorForByteType("tag"),
       });
     }
@@ -91,10 +91,10 @@ function processMessage(
         offset: i,
         value: i,
         type: "data",
-        fieldNumber,
+        fieldNumber: field.fieldNumber,
         fieldType: field.type,
         messageDepth,
-        description: `Field ${fieldNumber} Data (${field.type})`,
+        description: `Field ${field.fieldNumber} Data (${field.type})`,
         color: getColorForByteType("data", field.type),
       });
     }

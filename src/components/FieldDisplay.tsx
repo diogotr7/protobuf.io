@@ -1,19 +1,19 @@
 import { Card, HStack, Badge, Spacer } from "@chakra-ui/react";
-import { SizedRawField } from "../types";
+import { FieldWithNumber } from "../types";
 import { DataDisplay } from "./DataDisplay";
 
-export function FieldDisplay({ field }: { field: [number, SizedRawField] }) {
+export function FieldDisplay({ field }: { field: FieldWithNumber }) {
   return (
     <Card variant="outline" p={2} mt={2}>
       <HStack mb={2}>
-        <Badge colorScheme="purple">Field {field[0]}</Badge>
-        <Badge colorScheme="teal">Type: {field[1].type}</Badge>
+        <Badge colorScheme="purple">Field {field.fieldNumber}</Badge>
+        <Badge colorScheme="teal">Type: {field.type}</Badge>
         <Spacer />
-        <Badge colorScheme="yellow">{field[1].offset} offset</Badge>
-        <Badge colorScheme="red">{field[1].tagSize} tag</Badge>
-        <Badge colorScheme="red">{field[1].dataSize} data</Badge>
+        <Badge colorScheme="yellow">{field.offset} offset</Badge>
+        <Badge colorScheme="red">{field.tagSize} tag</Badge>
+        <Badge colorScheme="red">{field.dataSize} data</Badge>
       </HStack>
-      <DataDisplay field={field[1]} />
+      <DataDisplay field={field} />
     </Card>
   );
 }
