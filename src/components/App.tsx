@@ -29,7 +29,7 @@ export function App() {
         </Link>
       </HStack>
 
-      <Tabs variant="solid-rounded" isFitted defaultIndex={1}>
+      <Tabs variant="solid-rounded" isFitted defaultIndex={0}>
         <TabList mb={2}>
           <Tab>Inspector</Tab>
           <Tab>Editor</Tab>
