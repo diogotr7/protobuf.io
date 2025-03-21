@@ -83,7 +83,7 @@ function readField(reader: Reader): FieldWithNumber {
       };
       data.uint32Representation = reader.fixed32();
       reader.pos = before;
-      data.int32Representation = reader.int32();
+      data.int32Representation = reader.sfixed32();
 
       const dataSize = reader.pos - dataBefore;
 
