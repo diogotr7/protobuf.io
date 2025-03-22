@@ -2,7 +2,6 @@ import { useCallback, useMemo } from "react";
 import { decodeBytes } from "../../protobuf/decode";
 import {
   Flex,
-  Container,
   Card,
   Button,
   ButtonGroup,
@@ -12,13 +11,13 @@ import {
   Wrap,
   HStack,
   Stack,
+  VStack,
 } from "@chakra-ui/react";
 import { MessageDisplay } from "./MessageDisplay";
-import { useProtoActions as useBufferManagement } from "../../hooks/useProtoActions";
-import { useLinkSharing } from "../../hooks/useLinkSharing";
 import { InfoIcon } from "@chakra-ui/icons";
 import { examples } from "../../utils/exampleBuffers";
 import { HexView } from "./HexView";
+import { useBuffer } from "../../contexts/BufferContext";
 
 export function Inspector() {
   const toast = useToast();
@@ -35,9 +34,7 @@ export function Inspector() {
     handlePasteDecimal,
     handleShare,
     handleUploadFile,
-  } = useBufferManagement();
-
-  useLinkSharing(setBuffer);
+  } = useBuffer();
 
   const clear = useCallback(() => {
     setBuffer(new Uint8Array(0));
@@ -53,13 +50,7 @@ export function Inspector() {
   }, [buffer]);
 
   return (
-    <Container
-      maxW="container.lg"
-      p={0}
-      display="flex"
-      flexDirection="column"
-      gap={2}
-    >
+    <VStack w="100%" gap={2} align="stretch">
       <Card p={2} variant="outline">
         <Flex direction="column" gap={2}>
           <Wrap spacing={3} justify="space-evenly">
@@ -188,6 +179,6 @@ export function Inspector() {
           </Stack>
         </Card>
       )}
-    </Container>
+    </VStack>
   );
 }

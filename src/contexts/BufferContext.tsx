@@ -1,5 +1,13 @@
 import { useToast } from "@chakra-ui/react";
-import { useCallback, useMemo, useState } from "react";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   arrayBufferToBase64,
   arrayBufferToHex,
@@ -8,10 +16,50 @@ import {
   hexToArrayBuffer,
 } from "../utils/conversions";
 
-export function useProtoActions() {
-  const [buffer, setBuffer] = useState<Uint8Array>(new Uint8Array());
+interface BufferContextType {
+  buffer: Uint8Array;
+  setBuffer: (buffer: Uint8Array) => void;
+  handleCopyb64: () => void;
+  handleCopyHex: () => void;
+  handleCopyDecimal: () => void;
+  handlePasteb64: () => void;
+  handlePasteHex: () => void;
+  handlePasteDecimal: () => void;
+  handleUploadFile: () => void;
+  handleDownloadFile: () => void;
+  handleShare: () => void;
+  clear: () => void;
+}
 
+const BufferContext = createContext<BufferContextType | undefined>(undefined);
+
+export function BufferProvider({ children }: { children: ReactNode }) {
+  const [buffer, setBuffer] = useState<Uint8Array>(new Uint8Array());
   const toast = useToast();
+
+  // Effect to handle URL params when component mounts or URL changes
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const b64Param = searchParams.get("data");
+
+    if (b64Param) {
+      try {
+        // Decode base64 URL parameter
+        const decodedB64 = decodeURIComponent(b64Param);
+        const newBuffer = base64ToArrayBuffer(decodedB64);
+        setBuffer(newBuffer);
+        history.replaceState({}, document.title, location.pathname);
+      } catch (e) {
+        console.error("Error decoding URL parameter:", e);
+        toast({
+          title: "Error decoding URL parameter",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    }
+  }, [location.search, toast]);
 
   const getShareableLink = useCallback(() => {
     if (buffer.byteLength === 0) return "";
@@ -94,10 +142,7 @@ export function useProtoActions() {
       const text = await navigator.clipboard.readText();
       if (text.trim()) {
         try {
-          console.log(text.trim());
-
           const newBuffer = hexToArrayBuffer(text.trim());
-          console.log(newBuffer);
           setBuffer(newBuffer);
           toast({
             title: "Hex data pasted",
@@ -228,19 +273,24 @@ export function useProtoActions() {
     }
   }, [buffer, getShareableLink, toast]);
 
+  const clear = useCallback(() => {
+    setBuffer(new Uint8Array(0));
+  }, []);
+
   const value = useMemo(
     () => ({
       buffer,
       setBuffer,
       handleCopyb64,
       handleCopyHex,
+      handleCopyDecimal,
       handlePasteb64,
       handlePasteHex,
-      handleCopyDecimal,
       handlePasteDecimal,
       handleUploadFile,
       handleDownloadFile,
       handleShare,
+      clear,
     }),
     [
       buffer,
@@ -254,8 +304,19 @@ export function useProtoActions() {
       handleUploadFile,
       handleDownloadFile,
       handleShare,
+      clear,
     ]
   );
 
-  return value;
+  return (
+    <BufferContext.Provider value={value}>{children}</BufferContext.Provider>
+  );
+}
+
+export function useBuffer() {
+  const context = useContext(BufferContext);
+  if (context === undefined) {
+    throw new Error("useBuffer must be used within a BufferProvider");
+  }
+  return context;
 }

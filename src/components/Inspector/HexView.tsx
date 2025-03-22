@@ -7,6 +7,7 @@ import {
   Badge,
   Divider,
   Stack,
+  HStack,
 } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { SizedRawMessage } from "../../types";
@@ -157,11 +158,11 @@ export function HexView({
         <Stack spacing={0}>
           {rows.map((row, rowIndex) => (
             <Flex key={rowIndex} align="center" width="100%">
-              <Text fontFamily="mono" color="gray.500" w="60px" flexShrink={0}>
+              <Text fontFamily="mono" color="gray.500" flexShrink={0} pr={2}>
                 {(rowIndex * bytesPerRow).toString(16).padStart(4, "0")}
               </Text>
 
-              <Flex wrap="wrap" flex="1" justifyContent="flex-start">
+              <HStack wrap="wrap" flex="1" spacing={0}>
                 {row.map((byteInfo) => (
                   <Tooltip
                     key={byteInfo.offset}
@@ -174,13 +175,13 @@ export function HexView({
                       colorScheme={byteInfo.color}
                       fontFamily="mono"
                       borderRadius={0}
-                      fontSize="lg"
+                      fontSize="md"
                     >
                       {buffer[byteInfo.offset].toString(16).padStart(2, "0")}
                     </Badge>
                   </Tooltip>
                 ))}
-              </Flex>
+              </HStack>
             </Flex>
           ))}
         </Stack>

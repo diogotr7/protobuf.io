@@ -1,7 +1,6 @@
 import { Inspector } from "./Inspector";
 import {
   Container,
-  Heading,
   Tab,
   TabList,
   TabPanel,
@@ -10,6 +9,7 @@ import {
   Link,
   IconButton,
   HStack,
+  Text,
 } from "@chakra-ui/react";
 import { FaGithub } from "react-icons/fa";
 import { Editor } from "./Editor";
@@ -18,7 +18,9 @@ export function App() {
   return (
     <Container maxW="container.xl" py={2}>
       <HStack justify="space-between" align="center" mb={4}>
-        <Heading>protobuf.io</Heading>
+        <Text fontSize="2xl" fontWeight="bold">
+          protobuf.io
+        </Text>
         <Link href="https://github.com/diogotr7/protobuf.io" isExternal>
           <IconButton
             aria-label="GitHub repository"
