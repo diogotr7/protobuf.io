@@ -3,7 +3,6 @@ import {
   Card,
   HStack,
   Select,
-  Text,
   useColorMode,
   VStack,
 } from "@chakra-ui/react";
@@ -200,19 +199,6 @@ export function Editor() {
   return (
     <Card p={4} mb={6} variant="outline" display="flex" flexDirection="column">
       <VStack spacing={4} width="100%">
-        <Box>
-          {typeof parsedProtoDef === "string" ? (
-            <Text color="red.500">{parsedProtoDef}</Text>
-          ) : parsedProtoDef !== null ? (
-            <Text color="green.500">
-              Successfully parsed{" "}
-              {Object.keys(parsedProtoDef?.root?.nested ?? {}).length} messages
-            </Text>
-          ) : (
-            <Text color="gray.500">No valid protobuf data detected</Text>
-          )}
-        </Box>
-
         {typeof parsedProtoDef !== "string" && (
           <Select
             placeholder="Select message type"
