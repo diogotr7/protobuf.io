@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { decodeBytes } from "../../protobuf";
+import { decodeBytes } from "../../protobuf/decode";
 import {
   Flex,
   Container,

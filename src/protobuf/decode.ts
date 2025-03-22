@@ -1,7 +1,7 @@
 import { Reader } from "protobufjs";
-import { FieldWithNumber, SizedRawMessage } from "./types";
-import { WireType } from "./types/WireType";
-import { Fixed32, Fixed64, RawField, VarInt } from "./types/field";
+import { FieldWithNumber, SizedRawMessage } from "../types";
+import { WireType } from "../types/WireType";
+import { Fixed32, Fixed64, RawField, VarInt } from "../types/field";
 
 export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
   if (!bytes || bytes.length === 0)

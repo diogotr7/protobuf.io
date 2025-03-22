@@ -12,10 +12,9 @@ import { langs } from "@uiw/codemirror-extensions-langs";
 import { tokyoNightStorm } from "@uiw/codemirror-theme-tokyo-night-storm";
 import CodeMirror from "@uiw/react-codemirror";
 import { HexView } from "../Inspector/HexView";
-import { decodeBytes } from "../../protobuf";
+import { decodeBytes } from "../../protobuf/decode";
 import JSON5 from "json5";
-import { jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
-import { linter } from "@codemirror/lint";
+import { jsonLanguage } from "@codemirror/lang-json";
 
 const protobufGrammar = langs.protobuf();
 
@@ -228,7 +227,7 @@ export function Editor() {
               value={jsonText}
               width="100%"
               height="300px"
-              extensions={[jsonLanguage, linter(jsonParseLinter())]}
+              extensions={[jsonLanguage]}
               theme={colorMode === "light" ? "light" : tokyoNightStorm}
               onChange={(value) => {
                 setJsonText(value);

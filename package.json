@@ -13,7 +13,6 @@
   "dependencies": {
     "@chakra-ui/icons": "2",
     "@chakra-ui/react": "2",
-    "@codemirror/lint": "^6.8.4",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@types/react": "^18.3.11",
