@@ -2,12 +2,13 @@ import {
   Box,
   Card,
   HStack,
+  Select,
   Text,
   useColorMode,
   VStack,
 } from "@chakra-ui/react";
-import { IParserResult, parse } from "protobufjs";
-import { useState, useEffect, useMemo } from "react";
+import { Enum, Field, OneOf, parse, Type } from "protobufjs";
+import { useState, useMemo, useEffect } from "react";
 import { langs } from "@uiw/codemirror-extensions-langs";
 import { tokyoNightStorm } from "@uiw/codemirror-theme-tokyo-night-storm";
 import CodeMirror from "@uiw/react-codemirror";
@@ -18,65 +19,168 @@ import JSON5 from "json5";
 const protobufGrammar = langs.protobuf();
 const jsonGrammar = langs.json();
 
+function getDefaultScalarValue(field: Field) {
+  if (field.parsedOptions?.default !== undefined) {
+    return field.parsedOptions.default;
+  }
+
+  switch (field.type) {
+    case "int32":
+    case "int64":
+    case "uint32":
+    case "uint64":
+    case "sint32":
+    case "sint64":
+    case "fixed32":
+    case "fixed64":
+    case "sfixed32":
+    case "sfixed64":
+    case "float":
+    case "double":
+      return 0;
+    case "bool":
+      return false;
+    case "string":
+      return "";
+    case "bytes":
+      return new Uint8Array(0);
+    default:
+      return null;
+  }
+}
+
+function getDefaultMessageForType(type: Type) {
+  let message: any = {};
+  let partOfs: OneOf[] = [];
+  for (const field of type.fieldsArray) {
+    const subType = field.resolve();
+
+    if (subType.partOf && partOfs.includes(subType.partOf)) {
+      continue;
+    }
+
+    if (subType.resolvedType === null) {
+      const scalar = getDefaultScalarValue(subType);
+      if (subType.repeated) {
+        message[field.name] = [scalar];
+      } else {
+        message[field.name] = scalar;
+      }
+      continue;
+    }
+
+    if (subType.resolvedType instanceof Enum) {
+      if (subType.repeated) {
+        message[field.name] = [0];
+      } else {
+        message[field.name] = 0;
+      }
+      continue;
+    }
+
+    const defMessage = getDefaultMessageForType(subType.resolvedType);
+    if (subType.repeated) {
+      message[field.name] = [defMessage];
+    } else {
+      message[field.name] = defMessage;
+    }
+
+    if (subType.partOf) {
+      partOfs.push(subType.partOf);
+    }
+  }
+
+  return message;
+}
+
 export function Editor() {
   const { colorMode } = useColorMode();
 
-  const [protoText, setProtoText] = useState(`message RGB24 {
+  const [protoText, setProtoText] = useState(`message Color {
     required uint32 r = 1;
     required uint32 g = 2;
     required uint32 b = 3;
 }`);
 
-  const [jsonText, setJsonText] = useState(`{
-    "r": 255,
-    "g": 0,
-    "b": 0
-}`);
+  const [jsonText, setJsonText] = useState("");
 
-  const [buffer, setBuffer] = useState(new Uint8Array(0));
+  const [messageType, setMessageType] = useState<string | undefined>();
 
-  const [parsedProtoDef, setParsedProtoDef] = useState<
-    IParserResult | string | null
-  >(null);
-
-  useEffect(() => {
+  const parsedProtoDef = useMemo(() => {
     if (protoText === "") {
-      setParsedProtoDef(null);
-      return;
+      return null;
     }
+
     try {
-      setParsedProtoDef(parse(protoText));
+      return parse(protoText);
     } catch (e) {
-      if (e instanceof Error) setParsedProtoDef(e.message);
+      if (e instanceof Error) return e.message;
+      return null;
     }
   }, [protoText]);
 
-  useEffect(() => {
-    //encode json to buffer using proto definition
-    if (parsedProtoDef === null || typeof parsedProtoDef === "string") {
-      return;
+  const selectedType = useMemo(() => {
+    if (
+      parsedProtoDef === null ||
+      typeof parsedProtoDef === "string" ||
+      messageType === undefined
+    ) {
+      return null;
     }
+    try {
+      return parsedProtoDef?.root?.lookupType(messageType);
+    } catch (e) {
+      console.error(e);
+      return null;
+    }
+  }, [parsedProtoDef, messageType]);
+
+  const buffer = useMemo(() => {
+    if (selectedType === null) return new Uint8Array(0);
 
     try {
-      const buffer = parsedProtoDef.root
-        .lookupType("RGB24")
-        .encode(JSON5.parse(jsonText))
-        .finish();
-
-      setBuffer(buffer);
+      return selectedType.encode(JSON5.parse(jsonText)).finish();
     } catch (e) {
       console.error("Error encoding JSON to buffer:", e);
+      return new Uint8Array(0);
     }
-  }, [jsonText]);
+  }, [jsonText, selectedType]);
 
   const typeDefinition = useMemo(() => {
+    if (buffer.byteLength === 0) return null;
+
     try {
-      return buffer.byteLength > 0 ? decodeBytes(buffer) : null;
+      return decodeBytes(buffer);
     } catch (e) {
       console.error(e);
       return null;
     }
   }, [buffer]);
+
+  useEffect(() => {
+    if (selectedType === null) return;
+
+    try {
+      const defaultMessage = getDefaultMessageForType(selectedType);
+
+      setJsonText(JSON.stringify(defaultMessage, null, 2));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [selectedType]);
+
+  const typeOptions = useMemo(() => {
+    if (typeof parsedProtoDef === "string") return [];
+
+    return (
+      Object.values(parsedProtoDef?.root?.nested ?? {})
+        //hide enums
+        .filter(
+          (message) => message instanceof Type && message.fieldsArray.length > 0
+        )
+        .map((message) => message.name)
+    );
+  }, [parsedProtoDef]);
 
   return (
     <Card p={4} mb={6} variant="outline" display="flex" flexDirection="column">
@@ -93,9 +197,17 @@ export function Editor() {
             <Text color="gray.500">No valid protobuf data detected</Text>
           )}
         </Box>
-        <Box width="100%">
-          <HexView buffer={buffer} rootMessage={typeDefinition} />
-        </Box>
+
+        {typeof parsedProtoDef !== "string" && (
+          <Select
+            placeholder="Select message type"
+            onChange={(e) => setMessageType(e.target.value)}
+          >
+            {typeOptions.map((message, idx) => (
+              <option key={idx}>{message}</option>
+            ))}
+          </Select>
+        )}
 
         <HStack spacing={4} width="100%">
           <Box flex="1">
@@ -123,6 +235,10 @@ export function Editor() {
             />
           </Box>
         </HStack>
+
+        <Box width="100%">
+          <HexView buffer={buffer} rootMessage={typeDefinition} />
+        </Box>
       </VStack>
     </Card>
   );

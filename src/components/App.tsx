@@ -16,7 +16,7 @@ import { Editor } from "./Editor";
 
 export function App() {
   return (
-    <Container maxW="container.lg" py={2}>
+    <Container maxW="container.xl" py={2}>
       <HStack justify="space-between" align="center" mb={4}>
         <Heading>protobuf.io</Heading>
         <Link href="https://github.com/diogotr7/protobuf.io" isExternal>
