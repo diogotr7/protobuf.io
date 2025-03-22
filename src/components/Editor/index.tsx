@@ -15,13 +15,16 @@ import CodeMirror from "@uiw/react-codemirror";
 import { HexView } from "../Inspector/HexView";
 import { decodeBytes } from "../../protobuf";
 import JSON5 from "json5";
+import { jsonLanguage, jsonParseLinter } from "@codemirror/lang-json";
+import { linter } from "@codemirror/lint";
 
 const protobufGrammar = langs.protobuf();
-const jsonGrammar = langs.json();
 
 function getDefaultScalarValue(field: Field) {
-  if (field.parsedOptions?.default !== undefined) {
-    return field.parsedOptions.default;
+  const defaultValue = field.getOption("default");
+  if (defaultValue !== undefined) {
+    console.log(`default value for ${field.name}:`, defaultValue);
+    return defaultValue;
   }
 
   switch (field.type) {
@@ -70,10 +73,22 @@ function getDefaultMessageForType(type: Type) {
     }
 
     if (subType.resolvedType instanceof Enum) {
+      let value = 0;
+      const defaultValueName = subType.getOption("default");
+      if (defaultValueName !== undefined) {
+        value = subType.resolvedType.values[defaultValueName];
+
+        const defaultValueIdx = Object.entries(
+          subType.resolvedType.values
+        ).findIndex((value) => value[0] === defaultValueName);
+        if (defaultValueIdx !== -1) {
+          value = defaultValueIdx;
+        }
+      }
       if (subType.repeated) {
-        message[field.name] = [0];
+        message[field.name] = [value];
       } else {
-        message[field.name] = 0;
+        message[field.name] = value;
       }
       continue;
     }
@@ -227,7 +242,7 @@ export function Editor() {
               value={jsonText}
               width="100%"
               height="300px"
-              extensions={[jsonGrammar]}
+              extensions={[jsonLanguage, linter(jsonParseLinter())]}
               theme={colorMode === "light" ? "light" : tokyoNightStorm}
               onChange={(value) => {
                 setJsonText(value);
