@@ -7,14 +7,13 @@ import {
   Badge,
   Divider,
   Stack,
-  HStack,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { SizedRawMessage } from "../../types";
 
 interface ByteInfo {
   offset: number;
-  value: number;
   type: "tag" | "data" | "unknown";
   fieldType?: string;
   fieldNumber?: number;
@@ -26,7 +25,6 @@ interface ByteInfo {
 interface HexViewProps {
   buffer: Uint8Array;
   rootMessage: SizedRawMessage | null;
-  bytesPerRow?: number;
 }
 
 // Get color for a specific byte type
@@ -64,8 +62,6 @@ function processMessage(
   byteInfoMap: Map<number, ByteInfo>,
   messageDepth: number = 0
 ): void {
-  //const messageStart = message.offset;
-  //const messageEnd = messageStart + message.tagSize + message.dataSize;
   // Process each field in the message
   message.fields.forEach((field) => {
     const fieldStart = field.offset;
@@ -75,7 +71,6 @@ function processMessage(
     for (let i = fieldStart; i < fieldStart + field.tagSize; i++) {
       byteInfoMap.set(i, {
         offset: i,
-        value: i,
         type: "tag",
         fieldNumber: field.fieldNumber,
         fieldType: field.type,
@@ -89,7 +84,6 @@ function processMessage(
     for (let i = fieldStart + field.tagSize; i < fieldEnd; i++) {
       byteInfoMap.set(i, {
         offset: i,
-        value: i,
         type: "data",
         fieldNumber: field.fieldNumber,
         fieldType: field.type,
@@ -106,12 +100,19 @@ function processMessage(
   });
 }
 
-//TODO: make the rows dynamic based on the width of the hex view
-export function HexView({
-  buffer,
-  rootMessage,
-  bytesPerRow = 32,
-}: HexViewProps) {
+export function HexView({ buffer, rootMessage }: HexViewProps) {
+  const bytesPerRow =
+    useBreakpointValue(
+      {
+        base: 8, // Extra small screens
+        sm: 12, // Small screens
+        md: 16, // Medium screens
+        lg: 32, // Large screens
+        //xl: 64, // Extra large screens
+      },
+      { ssr: false }
+    ) || 16;
+
   // Process buffer and colorize based on the message structure
   const byteInfoArray = useMemo(() => {
     const byteInfoMap = new Map<number, ByteInfo>();
@@ -120,7 +121,6 @@ export function HexView({
     for (let i = 0; i < buffer.length; i++) {
       byteInfoMap.set(i, {
         offset: i,
-        value: buffer[i],
         type: "unknown",
         messageDepth: 0,
         description: "Unknown byte",
@@ -146,10 +146,7 @@ export function HexView({
     return result;
   }, [byteInfoArray, bytesPerRow]);
 
-  // No content to display
-  if (buffer.length === 0) {
-    return null;
-  }
+  if (buffer.length === 0) return null;
 
   return (
     <Card p={4} variant="outline">
@@ -162,26 +159,51 @@ export function HexView({
                 {(rowIndex * bytesPerRow).toString(16).padStart(4, "0")}
               </Text>
 
-              <HStack wrap="wrap" flex="1" spacing={0}>
+              <Flex flex="1" width="100%">
                 {row.map((byteInfo) => (
                   <Tooltip
+                    bg={`${byteInfo.color}.200`}
                     key={byteInfo.offset}
-                    label={`Offset: ${byteInfo.offset} | 0x${byteInfo.offset
+                    label={`0x${byteInfo.offset
                       .toString(16)
-                      .padStart(2, "0")} - ${byteInfo.description}`}
+                      .padStart(2, "0")} (${byteInfo.offset})  | ${
+                      byteInfo.fieldType
+                    } | ${byteInfo.type}`}
                     placement="top"
                   >
                     <Badge
-                      colorScheme={byteInfo.color}
+                      key={byteInfo.offset}
+                      flex={1}
+                      display="flex"
+                      alignItems="center"
+                      justifyContent="center"
                       fontFamily="mono"
+                      fontSize="lg"
+                      colorScheme={byteInfo.color}
                       borderRadius={0}
-                      fontSize="md"
                     >
                       {buffer[byteInfo.offset].toString(16).padStart(2, "0")}
                     </Badge>
                   </Tooltip>
                 ))}
-              </HStack>
+                {/* Fill remaining space with empty boxes if row is not complete */}
+                {row.length < bytesPerRow &&
+                  Array(bytesPerRow - row.length)
+                    .fill(0)
+                    .map((_, i) => (
+                      <Badge
+                        key={i}
+                        flex={1}
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                        fontFamily="mono"
+                        fontSize="lg"
+                        borderRadius={0}
+                        colorScheme="whiteAlpha"
+                      />
+                    ))}
+              </Flex>
             </Flex>
           ))}
         </Stack>
