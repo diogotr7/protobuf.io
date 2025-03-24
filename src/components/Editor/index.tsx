@@ -7,7 +7,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { Enum, Field, OneOf, parse, Type } from "protobufjs";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { langs } from "@uiw/codemirror-extensions-langs";
 import { tokyoNightStorm } from "@uiw/codemirror-theme-tokyo-night-storm";
 import CodeMirror from "@uiw/react-codemirror";
@@ -108,12 +108,17 @@ function getDefaultMessageForType(type: Type) {
 
 export function Editor() {
   const { colorMode } = useColorMode();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(50); // percentage
+
+  const editorHeight = "400px";
 
   const [protoText, setProtoText] = useState(`message Color {
-    required uint32 r = 1;
-    required uint32 g = 2;
-    required uint32 b = 3;
-}`);
+      required uint32 r = 1;
+      required uint32 g = 2;
+      required uint32 b = 3;
+  }`);
 
   const [jsonText, setJsonText] = useState("");
 
@@ -196,6 +201,45 @@ export function Editor() {
     );
   }, [parsedProtoDef]);
 
+  // Handle the start of dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  // Handle the dragging motion
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !containerRef.current) return;
+
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const containerWidth = containerRect.width;
+      const mouseX = e.clientX - containerRect.left;
+
+      // Calculate new width percentage
+      let newLeftWidth = (mouseX / containerWidth) * 100;
+
+      // Set limits to prevent panels from becoming too small
+      newLeftWidth = Math.max(20, Math.min(80, newLeftWidth));
+
+      setLeftPanelWidth(newLeftWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+    };
+
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isDragging]);
+
   return (
     <Card p={4} mb={6} variant="outline" display="flex" flexDirection="column">
       <VStack spacing={4} width="100%">
@@ -210,32 +254,55 @@ export function Editor() {
           </Select>
         )}
 
-        <HStack spacing={4} width="100%">
-          <Box flex="1">
-            <CodeMirror
-              value={protoText}
-              width="100%"
-              height="300px"
-              extensions={[protobufGrammar]}
-              theme={colorMode === "light" ? "light" : tokyoNightStorm}
-              onChange={(value) => {
-                setProtoText(value);
-              }}
+        <Box width="100%" position="relative" ref={containerRef}>
+          <HStack spacing={0} width="100%" position="relative">
+            {/* Left editor */}
+            <Box width={`${leftPanelWidth}%`} pr={2}>
+              <CodeMirror
+                value={protoText}
+                width="100%"
+                height={editorHeight}
+                extensions={[protobufGrammar]}
+                theme={colorMode === "light" ? "light" : tokyoNightStorm}
+                onChange={(value) => {
+                  setProtoText(value);
+                }}
+              />
+            </Box>
+
+            {/* Draggable divider */}
+            <Box
+              position="absolute"
+              top={0}
+              left={`${leftPanelWidth}%`}
+              height={editorHeight}
+              width="6px"
+              bg={colorMode === "light" ? "gray.200" : "gray.600"}
+              transform="translateX(-50%)"
+              cursor="col-resize"
+              zIndex={10}
+              onMouseDown={handleMouseDown}
+              _hover={{ bg: colorMode === "light" ? "blue.300" : "blue.500" }}
+              transition="background-color 0.2s"
+              opacity={isDragging ? 1 : 0.7}
+              borderRadius="sm"
             />
-          </Box>
-          <Box flex="1">
-            <CodeMirror
-              value={jsonText}
-              width="100%"
-              height="300px"
-              extensions={[jsonLanguage]}
-              theme={colorMode === "light" ? "light" : tokyoNightStorm}
-              onChange={(value) => {
-                setJsonText(value);
-              }}
-            />
-          </Box>
-        </HStack>
+
+            {/* Right editor */}
+            <Box width={`${100 - leftPanelWidth}%`} pl={2}>
+              <CodeMirror
+                value={jsonText}
+                width="100%"
+                height={editorHeight}
+                extensions={[jsonLanguage]}
+                theme={colorMode === "light" ? "light" : tokyoNightStorm}
+                onChange={(value) => {
+                  setJsonText(value);
+                }}
+              />
+            </Box>
+          </HStack>
+        </Box>
 
         <Box width="100%">
           <HexView buffer={buffer} rootMessage={typeDefinition} />
