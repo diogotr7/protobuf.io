@@ -11,10 +11,10 @@ import { useState, useMemo, useEffect } from "react";
 import { langs } from "@uiw/codemirror-extensions-langs";
 import { tokyoNightStorm } from "@uiw/codemirror-theme-tokyo-night-storm";
 import CodeMirror from "@uiw/react-codemirror";
-import { HexView } from "../Inspector/HexView";
 import { decodeBytes } from "../../protobuf/decode";
 import JSON5 from "json5";
 import { jsonLanguage } from "@codemirror/lang-json";
+import { HexView } from "../HexView";
 
 const protobufGrammar = langs.protobuf();
 
@@ -127,6 +127,7 @@ export function Editor() {
     try {
       return parse(protoText);
     } catch (e) {
+      console.error(e);
       if (e instanceof Error) return e.message;
       return null;
     }

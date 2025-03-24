@@ -8,6 +8,8 @@ import {
   Divider,
   Stack,
   useBreakpointValue,
+  SimpleGrid,
+  ThemeTypings,
 } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { SizedRawMessage } from "../../types";
@@ -19,7 +21,7 @@ interface ByteInfo {
   fieldNumber?: number;
   messageDepth: number;
   description: string;
-  color: string;
+  color: ThemeTypings["colorSchemes"];
 }
 
 interface HexViewProps {
@@ -28,7 +30,10 @@ interface HexViewProps {
 }
 
 // Get color for a specific byte type
-function getColorForByteType(type: string, fieldType?: string): string {
+function getColorForByteType(
+  type: string,
+  fieldType?: string
+): ThemeTypings["colorSchemes"] {
   switch (type) {
     case "tag":
       return "yellow";
@@ -52,7 +57,7 @@ function getColorForByteType(type: string, fieldType?: string): string {
           return "gray";
       }
     default:
-      return "gray.200";
+      return "gray";
   }
 }
 
@@ -148,8 +153,28 @@ export function HexView({ buffer, rootMessage }: HexViewProps) {
 
   if (buffer.length === 0) return null;
 
+  const label = (byteInfo: ByteInfo) => {
+    return (
+      <SimpleGrid columns={2} spacing={1}>
+        <Text>Offset</Text>
+        <Text>{`0x${byteInfo.offset.toString(16).padStart(2, "0")} (${
+          byteInfo.offset
+        })`}</Text>
+
+        <Text>Kind</Text>
+        <Text>{byteInfo.type}</Text>
+
+        <Text>Type</Text>
+        <Text>{byteInfo.fieldType}</Text>
+
+        <Text>Field</Text>
+        <Text>{byteInfo.fieldNumber}</Text>
+      </SimpleGrid>
+    );
+  };
+
   return (
-    <Card p={4} variant="outline">
+    <Card p={4} variant="outline" minH="200px">
       <VStack spacing={4} align="stretch">
         {/* Adjust spacing so that the actual byte rows line up close together */}
         <Stack spacing={0}>
@@ -164,11 +189,7 @@ export function HexView({ buffer, rootMessage }: HexViewProps) {
                   <Tooltip
                     bg={`${byteInfo.color}.200`}
                     key={byteInfo.offset}
-                    label={`0x${byteInfo.offset
-                      .toString(16)
-                      .padStart(2, "0")} (${byteInfo.offset})  | ${
-                      byteInfo.fieldType
-                    } | ${byteInfo.type}`}
+                    label={label(byteInfo)}
                     placement="top"
                   >
                     <Badge

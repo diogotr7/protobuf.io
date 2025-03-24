@@ -16,8 +16,8 @@ import {
 import { MessageDisplay } from "./MessageDisplay";
 import { InfoIcon } from "@chakra-ui/icons";
 import { examples } from "../../utils/exampleBuffers";
-import { HexView } from "./HexView";
 import { useBuffer } from "../../contexts/BufferContext";
+import { HexView } from "../HexView";
 
 export function Inspector() {
   const toast = useToast();
