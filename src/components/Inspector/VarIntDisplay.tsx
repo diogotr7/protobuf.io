@@ -1,6 +1,6 @@
 import { HStack, Text, Select, Spacer } from "@chakra-ui/react";
 import { useState } from "react";
-import { VarInt } from "../../types/field";
+import { VarInt } from "../../protobuf/primitives";
 
 const reprs = ["int", "uint", "sint"] as const;
 type VarIntRepresentation = (typeof reprs)[number];
@@ -11,9 +11,9 @@ export function VarIntDisplay({ varInt: varInt }: { varInt: VarInt }) {
   //let the user switch between representations
   return (
     <HStack justify="space-between">
-      {repr === "uint" && <Text fontFamily="mono">{varInt.uint}</Text>}
-      {repr === "int" && <Text fontFamily="mono">{varInt.int}</Text>}
-      {repr === "sint" && <Text fontFamily="mono">{varInt.sint}</Text>}
+      {repr === "uint" && <Text fontFamily="mono">{varInt.data.uint}</Text>}
+      {repr === "int" && <Text fontFamily="mono">{varInt.data.int}</Text>}
+      {repr === "sint" && <Text fontFamily="mono">{varInt.data.sint}</Text>}
       <Spacer />
       <Select
         size="sm"

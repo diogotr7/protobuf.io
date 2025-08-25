@@ -36,6 +36,18 @@ A lightweight web application for inspecting and visualizing Protocol Buffer bin
 - Try the included examples to see how the inspector works
 - Expand/collapse message sections to explore nested data
 
+## Future
+
+inputs
+- bytes (paste and upload)
+- proto code editor
+- json code editor
+
+outputs
+- hex viewer
+- proto message viewer
+- copy bytes for output?
+
 ## Screenshot
 
 ![Protobuf Inspector Screenshot](/screenshot.png)

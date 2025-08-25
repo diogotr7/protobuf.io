@@ -9,10 +9,10 @@ import {
   Button,
   Collapse,
 } from "@chakra-ui/react";
-import { SizedRawMessage } from "../../types";
 import { FieldDisplay } from "./FieldDisplay";
+import { Message } from "../../protobuf/message";
 
-export function MessageDisplay({ message }: { message: SizedRawMessage }) {
+export function MessageDisplay({ message }: { message: Message }) {
   const { isOpen, onToggle } = useDisclosure({
     defaultIsOpen: true,
   });
@@ -25,13 +25,12 @@ export function MessageDisplay({ message }: { message: SizedRawMessage }) {
           <Badge colorScheme="orange">Message</Badge>
           <Spacer />
           <Badge colorScheme="yellow">{message.offset} offset</Badge>
-          <Badge colorScheme="red">{message.dataSize} bytes</Badge>
           <Button size="xs" onClick={onToggle}>
             {isOpen ? <ChevronDownIcon /> : <ChevronUpIcon />}
           </Button>
         </HStack>
         <Collapse in={isOpen} animateOpacity startingHeight={0.0001}>
-          {message.fields.map((field, idx) => (
+          {message.data.fields.map((field, idx) => (
             <FieldDisplay key={idx} field={field} />
           ))}
         </Collapse>

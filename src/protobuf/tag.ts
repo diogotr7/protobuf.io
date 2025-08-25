@@ -1,3 +1,5 @@
+import { Sized } from "./sized";
+
 export enum WireType {
   /**
    * Used for int32, int64, uint32, uint64, sint32, sint64, bool, enum
@@ -32,3 +34,8 @@ export enum WireType {
    */
   Bit32 = 5,
 }
+
+export type Tag = Sized<{
+  fieldNumber: number;
+  wireType: WireType;
+}>;

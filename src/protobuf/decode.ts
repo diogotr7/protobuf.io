@@ -1,134 +1,93 @@
-import { Reader } from "protobufjs";
-import { FieldWithNumber, SizedRawMessage } from "../types";
-import { WireType } from "../types/WireType";
-import { Fixed32, Fixed64, RawField, VarInt } from "../types/field";
+import { WireType } from "./tag";
+import { Field } from "./field";
+import { Message } from "./message";
+import { SizedReader } from "./reader";
+import { Sized } from "./sized";
+import { LengthDelimitedBody } from "./length_delimited";
 
-export function decodeBytes(bytes: Uint8Array): SizedRawMessage {
+export function decodeBytes(bytes: Uint8Array): Message {
   if (!bytes || bytes.length === 0)
-    return { offset: 0, dataSize: 0, fields: [] };
+    return { offset: 0, size: 0, data: { fields: [] } };
 
-  const message = readMessage(new Reader(bytes), bytes.length);
-  sanityCheckSizes(message);
+  const message = readMessage(bytes);
+  // sanityCheckSizes(message);
   return message;
 }
 
-export function readMessage(reader: Reader, dataSize: number): SizedRawMessage {
-  const fields: FieldWithNumber[] = [];
+export function readMessage(data: Uint8Array): Message {
+  const reader = new SizedReader(data);
 
-  const initialPos = reader.pos;
-  while (reader.pos < initialPos + dataSize) {
+  const fields: Field[] = [];
+
+  while (reader.pos < reader.len) {
     fields.push(readField(reader));
   }
 
   return {
-    offset: initialPos,
-    dataSize,
-    fields,
+    offset: 0,
+    size: data.length,
+    data: {
+      fields,
+    },
   };
 }
 
-function readField(reader: Reader): FieldWithNumber {
-  const offset = reader.pos;
-  //todo: should this be a uint64 instead?
-  const tag = reader.uint32();
-  const fieldNumber = tag >>> 3;
-  const wireType = tag & 7;
-  let tagSize = reader.pos - offset;
-  const dataBefore = reader.pos;
+function readField(reader: SizedReader): Field {
+  const tag = reader.tag();
 
-  switch (wireType) {
+  switch (tag.data.wireType) {
     case WireType.Varint: {
-      const before = reader.pos;
-      const data: VarInt = {
-        int: "",
-        uint: "",
-        sint: "",
-      };
-
-      try {
-        data.int = reader.int32().toString();
-        reader.pos = before;
-        data.uint = reader.uint32().toString();
-        reader.pos = before;
-        data.sint = reader.sint32().toString();
-        reader.pos = before;
-      } catch (e) {
-        console.debug("Failed reading 32 bit varint, trying 64 bit varint", e);
-        //try to read 32 bit varints. If it fails, it's probably a 64 bit varint
-        reader.pos = before;
-      }
-
-      data.int = reader.int64().toString();
-      reader.pos = before;
-      data.uint = reader.uint64().toString();
-      reader.pos = before;
-      data.sint = reader.sint64().toString();
-
-      const dataSize = reader.pos - dataBefore;
+      const varint = reader.varint();
 
       return {
-        fieldNumber,
-        type: "varint",
-        data,
-        offset,
-        tagSize,
-        dataSize,
+        fieldHeader: tag,
+        fieldBody: {
+          fieldType: "varint",
+          fieldData: varint,
+        },
       };
     }
     case WireType.Bit32: {
-      const before = reader.pos;
-      const data: Fixed32 = {
-        int32Representation: 0,
-        uint32Representation: 0,
-      };
-      data.uint32Representation = reader.fixed32();
-      reader.pos = before;
-      data.int32Representation = reader.sfixed32();
-
-      const dataSize = reader.pos - dataBefore;
+      const fixed32 = reader.fixed32();
 
       return {
-        fieldNumber,
-        type: "fixed32",
-        offset,
-        tagSize,
-        dataSize,
-        data,
+        fieldHeader: tag,
+        fieldBody: {
+          fieldType: "fixed32",
+          fieldData: fixed32,
+        },
       };
     }
     case WireType.Bit64: {
-      const before = reader.pos;
-      const data: Fixed64 = {
-        uint64Representation: "",
-        int64Representation: "",
-      };
-      data.uint64Representation = reader.fixed64().toString();
-      reader.pos = before;
-      data.int64Representation = reader.sfixed64().toString();
-
-      const dataSize = reader.pos - dataBefore;
+      const fixed64 = reader.fixed64();
 
       return {
-        fieldNumber,
-        type: "fixed64",
-        offset,
-        tagSize,
-        dataSize,
-        data,
+        fieldHeader: tag,
+        fieldBody: {
+          fieldType: "fixed64",
+          fieldData: fixed64,
+        },
       };
     }
     case WireType.LengthDelimited: {
-      const [data, varIntHeaderLength] = readLengthDelimited(reader);
-      const dataBytes = reader.pos - dataBefore;
-      //early return here because handling is different
+      const { rawHeader: header, rawBody: data } = reader.lengthDelimited();
+
+      const lengthDelimited = lengthDelimitedFromRaw(data);
+
       return {
-        fieldNumber,
-        ...data,
-        offset,
-        //Adjusting sizes so the varintheader
-        // is included as part of the tag, not the data.
-        tagSize: tagSize + varIntHeaderLength,
-        dataSize: dataBytes - varIntHeaderLength,
+        fieldHeader: tag,
+        fieldBody: {
+          fieldType: "lengthDelimited",
+          fieldData: {
+            offset: header.offset,
+            // how many bytes the header varint takes + the actual byte size
+            size: header.size + data.size,
+            data: {
+              lengthDelimitedHeader: header,
+              lengthDelimitedBody: lengthDelimited,
+            },
+          },
+        },
       };
     }
     case WireType.StartGroup: {
@@ -142,75 +101,119 @@ function readField(reader: Reader): FieldWithNumber {
       throw new Error("groups are not supported 2");
     }
     default: {
-      throw new Error(`unknown wire type ${wireType} ${WireType[wireType]}`);
+      throw new Error(
+        `unknown wire type ${tag.data.wireType} ${WireType[tag.data.wireType]}`
+      );
     }
   }
 }
 
-//If the data of the field is a submessage, it will deal with its size itself?
-function readLengthDelimited(reader: Reader): [RawField, number] {
-  //possible data:
-  // 1. submessage
-  // 2. repeated field
-  // 3. string
-  // 4. bytes
-
-  // We should try to parse this as the data types described above, in order. If all else fails, just assume bytes.
-  const before = reader.pos;
-  //read how long the data is first.
-  const length = reader.uint32();
-  //then, we measure how long this varint header is
-  const varIntHeaderLength = reader.pos - before;
-  //we do not rewind here, if it *is* a submessage, it assumes we've already read the len varint.
-
-  //if try read tag works, we need to then figure out whether it's a submessage or a repeated field. It's safe to exhaust the buffer, we'll never read past where we should.
+// hacky: we have read a raw byte array that is length delimited.
+// we will try and read it as any of the possible things it can contain.
+// Those are, in order of preference:
+// 1. a submessage
+// 2. a repeated field
+// 3. a string
+// 4. bytes
+// If it fails to parse as any of those, we will just assume it's bytes.
+// We should also leave the header intact, because that part is present regardless of content.
+function lengthDelimitedFromRaw(raw: Sized<Uint8Array>): LengthDelimitedBody {
   try {
-    //TODO: need to deal with packed repeated fields here.
-    // as far as i understand, they're a length delimited field, that contains a single tag at the start,
-    //  then the actual data of the field repeated until we finish the payload (with no more tags).
-    // Checking for its existence without type information is a bit of a pain. Probably force read a tag,
-    //  then be more permissive reading following tags within that length delimited payload.
-    const subMessage = readMessage(reader, length);
-    return [
-      {
-        data: subMessage,
-        type: "message",
-      },
-      varIntHeaderLength,
-    ];
+    const message = readMessage(raw.data);
+
+    return {
+      lengthDelimitedType: "message",
+      lengthDelimitedData: message,
+    };
   } catch (e) {
-    reader.pos = before;
     console.debug(
       "Failed parsing message from length delimited field. This is probably not an error. Falling back to string or bytes.",
       e
     );
-    //let the other parsers try to parse this.
   }
 
-  //the other two parsers don't really care about a Reader, so we can just pass the bytes.
-  const bytes = reader.bytes();
+  //TODO: we should also try to read it as a packed field.
 
-  //if try read tag fails, we need to try to parse it as a string.
-  const possibleString = tryReadString(bytes);
+  // If it fails to parse as a message, we will try to parse it as a string.
+  const possibleString = tryReadString(raw.data);
   if (possibleString) {
-    return [
-      {
-        data: possibleString,
-        type: "string",
-      },
-      varIntHeaderLength,
-    ];
+    return {
+      lengthDelimitedType: "string",
+      lengthDelimitedData: possibleString,
+    };
   }
 
-  //if that fails, just assume it's bytes.
-  return [
-    {
-      data: bytes,
-      type: "bytes",
-    },
-    varIntHeaderLength,
-  ];
+  // If it fails to parse as a string, we will just assume it's bytes.
+  return {
+    lengthDelimitedType: "bytes",
+    lengthDelimitedData: raw.data,
+  };
 }
+
+// //If the data of the field is a submessage, it will deal with its size itself?
+// function readLengthDelimited(reader: Reader): [LengthDelimited, number] {
+//   //possible data:
+//   // 1. submessage
+//   // 2. repeated field
+//   // 3. string
+//   // 4. bytes
+
+//   // We should try to parse this as the data types described above, in order. If all else fails, just assume bytes.
+//   const before = reader.pos;
+//   //read how long the data is first.
+//   const length = reader.uint32();
+//   //then, we measure how long this varint header is
+//   const varIntHeaderLength = reader.pos - before;
+//   //we do not rewind here, if it *is* a submessage, it assumes we've already read the len varint.
+
+//   //if try read tag works, we need to then figure out whether it's a submessage or a repeated field. It's safe to exhaust the buffer, we'll never read past where we should.
+//   try {
+//     //TODO: need to deal with packed repeated fields here.
+//     // as far as i understand, they're a length delimited field, that contains a single tag at the start,
+//     //  then the actual data of the field repeated until we finish the payload (with no more tags).
+//     // Checking for its existence without type information is a bit of a pain. Probably force read a tag,
+//     //  then be more permissive reading following tags within that length delimited payload.
+//     const subMessage = readMessage(reader, length);
+//     return [
+//       {
+//         data: subMessage,
+//         innerType: "message",
+//       },
+//       varIntHeaderLength,
+//     ];
+//   } catch (e) {
+//     reader.pos = before;
+//     console.debug(
+//       "Failed parsing message from length delimited field. This is probably not an error. Falling back to string or bytes.",
+//       e
+//     );
+//     //let the other parsers try to parse this.
+//   }
+
+//   //the other two parsers don't really care about a Reader, so we can just pass the bytes.
+//   const bytes = reader.bytes();
+
+//   //if try read tag fails, we need to try to parse it as a string.
+//   const possibleString = tryReadString(bytes);
+//   if (possibleString) {
+//     return [
+//       {
+//         data: possibleString,
+//         innerType: "string",
+//       },
+//       varIntHeaderLength,
+//     ];
+//   }
+
+//   //if that fails, just assume it's bytes.
+//   return [
+//     {
+//       data: bytes,
+//       innerType: "bytes",
+//     },
+//     varIntHeaderLength,
+//   ];
+// }
 
 function tryReadString(bytes: Uint8Array): string | null {
   try {
@@ -232,20 +235,23 @@ function tryReadString(bytes: Uint8Array): string | null {
   }
 }
 
-function sanityCheckSizes(message: SizedRawMessage, pointer = 0) {
-  for (const field of message.fields) {
-    if (field.offset !== pointer) {
-      throw new Error(
-        `Field offset ${field.offset} does not match pointer ${pointer}`
-      );
-    }
+// function sanityCheckSizes(message: SizedRawMessage, pointer = 0) {
+//   for (const field of message.fields) {
+//     if (field.offset !== pointer) {
+//       throw new Error(
+//         `Field offset ${field.offset} does not match pointer ${pointer}`
+//       );
+//     }
 
-    pointer += field.tagSize;
+//     pointer += field.tagSize;
 
-    if (field.type === "message") {
-      sanityCheckSizes(field.data, pointer);
-    }
+//     if (
+//       field.type === "lengthDelimited" &&
+//       field.data.innerType === "message"
+//     ) {
+//       sanityCheckSizes(field.data.data, pointer);
+//     }
 
-    pointer += field.dataSize;
-  }
-}
+//     pointer += field.dataSize;
+//   }
+// }
