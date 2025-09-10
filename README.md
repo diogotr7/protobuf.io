@@ -47,6 +47,7 @@ outputs
 - hex viewer
 - proto message viewer
 - copy bytes for output?
+test
 
 ## Screenshot
 
